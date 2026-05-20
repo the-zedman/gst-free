@@ -1,14 +1,15 @@
 import Link from "next/link";
-import { PAGE_SIZE } from "@/lib/items";
+import { PAGE_SIZE } from "@/lib/constants";
 
 interface PaginationProps {
   total: number;
   page: number;
   q: string;
   category: string;
+  status: string;
 }
 
-export default function Pagination({ total, page, q, category }: PaginationProps) {
+export default function Pagination({ total, page, q, category, status }: PaginationProps) {
   const totalPages = Math.ceil(total / PAGE_SIZE);
   if (totalPages <= 1) return null;
 
@@ -16,12 +17,13 @@ export default function Pagination({ total, page, q, category }: PaginationProps
     const params = new URLSearchParams();
     if (q) params.set("q", q);
     if (category !== "all") params.set("category", category);
+    if (status !== "all") params.set("status", status);
     if (p > 1) params.set("page", String(p));
     return `/?${params.toString()}`;
   }
 
   return (
-    <div className="flex items-center justify-center gap-2 pt-4">
+    <div className="flex items-center justify-center gap-2 pt-6">
       {page > 1 && (
         <Link
           href={href(page - 1)}

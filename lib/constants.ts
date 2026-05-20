@@ -1,18 +1,20 @@
 export const PAGE_SIZE = 24;
 
 export const CATEGORIES = [
-  { value: "all",          label: "All Items",      emoji: "🛒" },
-  { value: "produce",      label: "Produce",         emoji: "🥦" },
-  { value: "meat",         label: "Meat & Poultry",  emoji: "🥩" },
-  { value: "seafood",      label: "Seafood",         emoji: "🐟" },
-  { value: "dairy",        label: "Dairy",           emoji: "🥛" },
-  { value: "bread",        label: "Bread & Bakery",  emoji: "🍞" },
-  { value: "pantry",       label: "Pantry",          emoji: "🫙" },
-  { value: "condiments",   label: "Condiments",      emoji: "🧴" },
-  { value: "herbs-spices", label: "Herbs & Spices",  emoji: "🌿" },
-  { value: "beverages",    label: "Beverages",       emoji: "☕" },
-  { value: "baby-food",    label: "Baby Food",       emoji: "🍼" },
-  { value: "other",        label: "Other",           emoji: "📦" },
+  { value: "all",           label: "All Items",      emoji: "🛒" },
+  { value: "produce",       label: "Produce",         emoji: "🥦" },
+  { value: "meat",          label: "Meat & Poultry",  emoji: "🥩" },
+  { value: "seafood",       label: "Seafood",         emoji: "🐟" },
+  { value: "dairy",         label: "Dairy",           emoji: "🥛" },
+  { value: "bread",         label: "Bread & Bakery",  emoji: "🍞" },
+  { value: "pantry",        label: "Pantry",          emoji: "🫙" },
+  { value: "condiments",    label: "Condiments",      emoji: "🧴" },
+  { value: "herbs-spices",  label: "Herbs & Spices",  emoji: "🌿" },
+  { value: "beverages",     label: "Beverages",       emoji: "☕" },
+  { value: "confectionery", label: "Confectionery",   emoji: "🍬" },
+  { value: "snacks",        label: "Snacks",          emoji: "🍿" },
+  { value: "baby-food",     label: "Baby Food",       emoji: "🍼" },
+  { value: "other",         label: "Other",           emoji: "📦" },
 ] as const;
 
 export type CategoryValue = (typeof CATEGORIES)[number]["value"];
@@ -27,9 +29,21 @@ export const CATEGORY_COLORS: Record<string, string> = {
   condiments:     "bg-purple-100 text-purple-800",
   "herbs-spices": "bg-emerald-100 text-emerald-800",
   beverages:      "bg-sky-100 text-sky-800",
-  "baby-food":    "bg-pink-100 text-pink-800",
+  confectionery:  "bg-pink-100 text-pink-800",
+  snacks:         "bg-yellow-100 text-yellow-800",
+  "baby-food":    "bg-rose-100 text-rose-800",
   other:          "bg-gray-100 text-gray-700",
 };
+
+export type GstStatus = "GST-free" | "taxable" | "mixed supply" | "see Notes";
+
+export const GST_STATUS_FILTERS = [
+  { value: "all",      label: "All" },
+  { value: "gst-free", label: "GST-Free only" },
+  { value: "taxable",  label: "Taxable only" },
+] as const;
+
+export type GstFilter = (typeof GST_STATUS_FILTERS)[number]["value"];
 
 /** Strips verbose ATO qualifiers to produce a clean display name. */
 export function shortName(name: string): string {
