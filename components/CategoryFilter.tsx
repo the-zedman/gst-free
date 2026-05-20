@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { CATEGORIES, type CategoryValue } from "@/lib/items";
+import { CATEGORIES } from "@/lib/constants";
 
 interface CategoryFilterProps {
   active: string;

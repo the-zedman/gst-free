@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { CATEGORIES, CATEGORY_COLORS, shortName, type Item } from "@/lib/items";
+import { CATEGORIES, CATEGORY_COLORS, shortName } from "@/lib/constants";
+import type { Item } from "@/lib/items";
 
 interface ItemCardProps {
   item: Item;

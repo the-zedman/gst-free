@@ -1,5 +1,5 @@
 import { sql } from "@/lib/db";
-import { CATEGORIES, CATEGORY_COLORS } from "@/lib/items";
+import { CATEGORIES, CATEGORY_COLORS } from "@/lib/constants";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
