@@ -1,65 +1,99 @@
-import Image from "next/image";
+import { Suspense } from "react";
+import { searchItems, CATEGORIES, PAGE_SIZE } from "@/lib/items";
+import SearchBar from "@/components/SearchBar";
+import CategoryFilter from "@/components/CategoryFilter";
+import ItemCard from "@/components/ItemCard";
+import Pagination from "@/components/Pagination";
 
-export default function Home() {
+interface HomePageProps {
+  searchParams: Promise<{ q?: string; category?: string; page?: string }>;
+}
+
+export default async function HomePage({ searchParams }: HomePageProps) {
+  const { q = "", category = "all", page = "1" } = await searchParams;
+  const currentPage = Math.max(1, parseInt(page) || 1);
+
+  const { items, total } = await searchItems(q, category, currentPage);
+
+  const catLabel =
+    CATEGORIES.find((c) => c.value === category)?.label ?? "All Items";
+  const start = (currentPage - 1) * PAGE_SIZE + 1;
+  const end = Math.min(currentPage * PAGE_SIZE, total);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <div className="min-h-screen flex flex-col">
+      {/* Hero */}
+      <section className="bg-gradient-to-b from-green-50 to-white px-4 pt-10 pb-8">
+        <div className="max-w-3xl mx-auto text-center">
+          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
+            Find GST‑Free Foods
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="text-gray-500 mb-6 text-base sm:text-lg">
+            Save up to 10% on your grocery bill — 785 confirmed items from the ATO
+          </p>
+          <Suspense>
+            <SearchBar defaultValue={q} />
+          </Suspense>
+        </div>
+      </section>
+
+      {/* Filters + Results */}
+      <section className="flex-1 max-w-6xl mx-auto w-full px-4 pb-12">
+        <div className="py-4">
+          <Suspense>
+            <CategoryFilter active={category} />
+          </Suspense>
+        </div>
+
+        {/* Results header */}
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-sm text-gray-500">
+            {total === 0 ? (
+              "No items found"
+            ) : (
+              <>
+                <span className="font-semibold text-gray-800">{total.toLocaleString()}</span>{" "}
+                {q ? (
+                  <>results for <span className="font-semibold text-green-700">"{q}"</span></>
+                ) : (
+                  <>{catLabel}</>
+                )}
+                {total > PAGE_SIZE && (
+                  <span className="text-gray-400"> · showing {start}–{end}</span>
+                )}
+              </>
+            )}
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+
+        {/* Empty state */}
+        {items.length === 0 && (
+          <div className="text-center py-16">
+            <p className="text-4xl mb-3">🔍</p>
+            <p className="text-gray-500 text-lg font-medium">No GST-free items found</p>
+            <p className="text-gray-400 text-sm mt-1">
+              Try a different search term or browse all categories
+            </p>
+          </div>
+        )}
+
+        {/* Results grid */}
+        {items.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {items.map((item) => (
+              <ItemCard key={item.id} item={item} />
+            ))}
+          </div>
+        )}
+
+        <Pagination total={total} page={currentPage} q={q} category={category} />
+      </section>
+
+      <footer className="border-t border-gray-100 py-6 text-center text-xs text-gray-400 px-4">
+        GST-free status sourced from the{" "}
+        <span className="font-medium">ATO Detailed Food List</span>. Always verify
+        with your supermarket receipt. Not financial or legal advice.
+      </footer>
     </div>
   );
 }
