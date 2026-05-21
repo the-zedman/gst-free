@@ -30,36 +30,21 @@ function assignCategory(item: string, notes: string): string {
   const n = notes.toLowerCase();
   const i = item.toLowerCase();
 
-  // ── Dairy via Schedule 2 item 1 ────────────────────────────────────────────
   if (/schedule 2, item 1/.test(n)) return "dairy";
-
-  // ── Beverages ───────────────────────────────────────────────────────────────
   if (/schedule 2, item (5|7|8|9|10|11|12)/.test(n)) return "beverages";
   if (/schedule 1, item (11|13|14|15)/.test(n)) return "beverages";
   if (/not a beverage of a kind specified in schedule 2/.test(n)) return "beverages";
-
-  // ── Hot / takeaway / prepared meal / on-premises ─────────────────────────
   if (/schedule 1, item (1|2|3|4|5|6)/.test(n)) return "other";
   if (/dine-in|takeaway|take.?away|on the premises/.test(n)) return "other";
   if (/not food for human consumption/.test(n)) return "other";
   if (/not a beverage for human consumption/.test(n)) return "other";
   if (/live animal|live plant/.test(n)) return "produce";
-
-  // ── Confectionery ───────────────────────────────────────────────────────────
   if (/schedule 1, item 8/.test(n)) return "confectionery";
-  if (/\b(confectionery|lolly|lollies|chocolate bar|candy|toffee|fudge|nougat|marzipan|fondant|caramel|marshmallow|licorice|liquorice)\b/.test(i)) return "confectionery";
-
-  // ── Snacks ──────────────────────────────────────────────────────────────────
+  if (/(confectionery|lolly|lollies|chocolate bar|candy|toffee|fudge|nougat|marzipan|fondant|caramel|marshmallow|licorice|liquorice)/.test(i)) return "confectionery";
   if (/schedule 1, item (11|16|17|18|19|20|21|32)/.test(n)) return "snacks";
-  if (/\b(chips?|crisps?|popcorn|pretzels?|pork rind|corn chip|rice cracker|cracker|muesli bar|health.?bar|cereal bar|protein bar|nut bar|seed bar|trail mix|party mix|snack mix)\b/.test(i)) return "snacks";
-
-  // ── Bread / pastry / pies ───────────────────────────────────────────────────
+  if (/(chips?|crisps?|popcorn|pretzels?|pork rind|corn chip|rice cracker|cracker|muesli bar|health.?bar|cereal bar|protein bar|nut bar|seed bar|trail mix|party mix|snack mix)/.test(i)) return "snacks";
   if (/schedule 1, item (22|23|24|25|26|27)/.test(n)) return "bread";
-
-  // ── Ice cream / frozen desserts ─────────────────────────────────────────────
   if (/schedule 1, item 28/.test(n)) return "dairy";
-
-  // ── Note-prefix categories (GST-free items mostly) ──────────────────────────
   if (n.startsWith("condiment")) return "condiments";
   if (n.startsWith("flavouring")) return "herbs-spices";
   if (n.startsWith("seasoning")) return "herbs-spices";
@@ -70,28 +55,16 @@ function assignCategory(item: string, notes: string): string {
   if (n.startsWith("crustacean")) return "seafood";
   if (n.startsWith("mollusc")) return "seafood";
   if (n.includes("pulses supplied as food")) return "produce";
-
-  // ── Item name keywords ───────────────────────────────────────────────────────
-  if (/\b(baby|infant|toddler)\b/.test(i)) return "baby-food";
-
-  if (/\b(chicken|beef|pork|lamb|veal|turkey|duck|ham|bacon|sausage|salami|chorizo|pepperoni|prosciutto|pancetta|mortadella|devon|cabanossi|biltong|jerky|mince|steak|schnitzel|poultry|liver|kidney|brain|tripe|offal|bratwurst|chipolata|boerewors|csabai|chevapcici|black pudding|blood pudding|camp pie|corned beef|cold meat|braised meat|bones|buffalo|venison|rabbit|kangaroo|goat|quail)\b/.test(i)) return "meat";
-
-  if (/\b(fish|tuna|salmon|prawn|shrimp|crab|lobster|oyster|mussel|scallop|squid|octopus|calamari|abalone|clam|anchovy|sardine|herring|seafood|marinara|bonito|barramundi|cod|flathead|snapper|whiting|bream|trout|mackerel|caviar|roe)\b/.test(i)) return "seafood";
-
-  if (/\b(milk|cheese|yoghurt|yogurt|cream|butter|buttermilk|dairy|casein|whey|ricotta|bocconcini|mozzarella|feta|cheddar|parmesan|cottage cheese|condensed milk|evaporated milk|gouda|camembert|brie|mascarpone|colostrum|crème fraiche|ice cream|gelato|sorbet|frozen yogurt)\b/.test(i)) return "dairy";
-
-  if (/\b(bread|roll|bagel|baguette|crumpet|pita|wrap|tortilla|flatbread|naan|chapati|damper|focaccia|ciabatta|sourdough|pretzel|challah|roti|lavash|pikelet|loaf|breadcrumb|bread flour|bread mix|bun|muffin|pie|pastry|pasty|sausage roll|quiche|croissant|danish|scroll|donut|doughnut|eclair|brioche)\b/.test(i)) return "bread";
-
-  if (/\b(coffee|tea|juice|cordial|nectar|chocolate drink|hot chocolate|cocoa drink|malt drink|drinking preparation|apple cider|coconut juice|soft drink|soda|cola|lemonade|kombucha|energy drink|sports drink|electrolyte|alcohol|beer|wine|spirits|cider|liqueur|champagne)\b/.test(i)) return "beverages";
-
-  if (/\b(herb|spice|pepper|cinnamon|cumin|turmeric|paprika|oregano|basil|thyme|rosemary|bay leaf|clove|nutmeg|cardamom|coriander|dill|parsley|chive|mint|sage|marjoram|aniseed|fennel seed|mustard seed|fenugreek|wasabi|horseradish)\b/.test(i)) return "herbs-spices";
-
-  if (/\b(chocolate|lolly|lollies|candy|sweet|confection|toffee|fudge|nougat|marzipan|marshmallow|licorice|liquorice|chewing gum|bubble gum|jelly bean|gummy|peppermint|boiled sweet)\b/.test(i)) return "confectionery";
-
-  if (/\b(apple|banana|orange|tomato|potato|carrot|onion|garlic|lemon|lime|grape|strawberry|berr|lettuce|spinach|broccoli|cauliflower|cabbage|celery|cucumber|zucchini|pumpkin|pea|lentil|chickpea|mushroom|sprout|avocado|mango|pineapple|melon|peach|plum|cherry|kiwi|fig|date|artichoke|asparagus|beetroot|eggplant|leek|radish|silverbeet|sweet potato|yam|taro|corn|fennel|capsicum|chilli|ginger|alfalfa|bamboo|fruit|vegetable|salad|produce|fresh|frozen veg)\b/.test(i)) return "produce";
-
-  if (/\b(condiment|sauce|dip|spread|jam|jelly|relish|chutney|mayo|mayonnaise|mustard|ketchup|vinegar|dressing|paste)\b/.test(i)) return "condiments";
-
+  if (/(baby|infant|toddler)/.test(i)) return "baby-food";
+  if (/(chicken|beef|pork|lamb|veal|turkey|duck|ham|bacon|sausage|salami|chorizo|pepperoni|prosciutto|pancetta|mortadella|devon|cabanossi|biltong|jerky|mince|steak|schnitzel|poultry|liver|kidney|brain|tripe|offal|bratwurst|chipolata|boerewors|csabai|chevapcici|black pudding|blood pudding|camp pie|corned beef|cold meat|braised meat|bones|buffalo|venison|rabbit|kangaroo|goat|quail)/.test(i)) return "meat";
+  if (/(fish|tuna|salmon|prawn|shrimp|crab|lobster|oyster|mussel|scallop|squid|octopus|calamari|abalone|clam|anchovy|sardine|herring|seafood|marinara|bonito|barramundi|cod|flathead|snapper|whiting|bream|trout|mackerel|caviar|roe)/.test(i)) return "seafood";
+  if (/(milk|cheese|yoghurt|yogurt|cream|butter|buttermilk|dairy|casein|whey|ricotta|bocconcini|mozzarella|feta|cheddar|parmesan|cottage cheese|condensed milk|evaporated milk|gouda|camembert|brie|mascarpone|colostrum|crème fraiche|ice cream|gelato|sorbet|frozen yogurt)/.test(i)) return "dairy";
+  if (/(bread|roll|bagel|baguette|crumpet|pita|wrap|tortilla|flatbread|naan|chapati|damper|focaccia|ciabatta|sourdough|pretzel|challah|roti|lavash|pikelet|loaf|breadcrumb|bread flour|bread mix|bun|muffin|pie|pastry|pasty|sausage roll|quiche|croissant|danish|scroll|donut|doughnut|eclair|brioche)/.test(i)) return "bread";
+  if (/(coffee|tea|juice|cordial|nectar|chocolate drink|hot chocolate|cocoa drink|malt drink|drinking preparation|apple cider|coconut juice|soft drink|soda|cola|lemonade|kombucha|energy drink|sports drink|electrolyte|alcohol|beer|wine|spirits|cider|liqueur|champagne)/.test(i)) return "beverages";
+  if (/(herb|spice|pepper|cinnamon|cumin|turmeric|paprika|oregano|basil|thyme|rosemary|bay leaf|clove|nutmeg|cardamom|coriander|dill|parsley|chive|mint|sage|marjoram|aniseed|fennel seed|mustard seed|fenugreek|wasabi|horseradish)/.test(i)) return "herbs-spices";
+  if (/(chocolate|lolly|lollies|candy|sweet|confection|toffee|fudge|nougat|marzipan|marshmallow|licorice|liquorice|chewing gum|bubble gum|jelly bean|gummy|peppermint|boiled sweet)/.test(i)) return "confectionery";
+  if (/(apple|banana|orange|tomato|potato|carrot|onion|garlic|lemon|lime|grape|strawberry|berr|lettuce|spinach|broccoli|cauliflower|cabbage|celery|cucumber|zucchini|pumpkin|pea|lentil|chickpea|mushroom|sprout|avocado|mango|pineapple|melon|peach|plum|cherry|kiwi|fig|date|artichoke|asparagus|beetroot|eggplant|leek|radish|silverbeet|sweet potato|yam|taro|corn|fennel|capsicum|chilli|ginger|alfalfa|bamboo|fruit|vegetable|salad|produce|fresh|frozen veg)/.test(i)) return "produce";
+  if (/(condiment|sauce|dip|spread|jam|jelly|relish|chutney|mayo|mayonnaise|mustard|ketchup|vinegar|dressing|paste)/.test(i)) return "condiments";
   return "other";
 }
 
@@ -113,7 +86,8 @@ async function main() {
   const data = JSON.parse(raw);
   const items: AtoItem[] = data.items;
 
-  console.log(`\nDropping and recreating items table...`);
+  console.log(`
+Dropping and recreating items table...`);
   await sql`DROP TABLE IF EXISTS items`;
   await sql`
     CREATE TABLE items (
@@ -138,7 +112,9 @@ async function main() {
 
   console.log(`Seeding ${items.length} items...`);
 
+  const jsonIds = new Set(items.map((i) => i.detailed_food_list_id));
   let inserted = 0;
+  let updated = 0;
   const statusCounts: Record<string, number> = {};
   const catCounts: Record<string, number> = {};
 
@@ -147,7 +123,7 @@ async function main() {
     const category = assignCategory(item.item, item.notes);
     const slug = generateSlug(item.item, item.detailed_food_list_id);
 
-    await sql`
+    const result = await sql`
       INSERT INTO items (ato_id, name, ato_notes, gst_status, category, slug)
       VALUES (
         ${item.detailed_food_list_id},
@@ -164,21 +140,43 @@ async function main() {
         category   = EXCLUDED.category,
         slug       = EXCLUDED.slug,
         updated_at = NOW()
-    `;
+      RETURNING (xmax = 0) AS is_insert
+    ` as { is_insert: boolean }[];
 
-    inserted++;
+    if (result[0]?.is_insert) inserted++;
+    else updated++;
+
     statusCounts[gst_status] = (statusCounts[gst_status] || 0) + 1;
     catCounts[category] = (catCounts[category] || 0) + 1;
   }
 
-  console.log(`\nInserted/updated: ${inserted}`);
+  // Remove items no longer in the ATO list
+  const dbRows = await sql`SELECT ato_id FROM items` as { ato_id: string }[];
+  const toDelete = dbRows.map((r) => r.ato_id).filter((id) => !jsonIds.has(id));
 
-  console.log("\nGST status breakdown:");
+  if (toDelete.length > 0) {
+    for (const id of toDelete) {
+      await sql`DELETE FROM items WHERE ato_id = ${id}`;
+    }
+    console.log(`
+Removed ${toDelete.length} item(s) no longer in the ATO list:`);
+    toDelete.forEach((id) => console.log(`  #${id}`));
+  } else {
+    console.log(`
+No items removed (all DB items still present in ATO list)`);
+  }
+
+  console.log(`
+Inserted: ${inserted}  |  Updated: ${updated}  |  Removed: ${toDelete.length}`);
+
+  console.log("
+GST status breakdown:");
   for (const [k, v] of Object.entries(statusCounts).sort((a, b) => b[1] - a[1])) {
     console.log(`  ${k.padEnd(16)} ${v}`);
   }
 
-  console.log("\nCategory breakdown:");
+  console.log("
+Category breakdown:");
   for (const [k, v] of Object.entries(catCounts).sort((a, b) => b[1] - a[1])) {
     console.log(`  ${k.padEnd(16)} ${v}`);
   }
