@@ -169,14 +169,12 @@ No items removed (all DB items still present in ATO list)`);
   console.log(`
 Inserted: ${inserted}  |  Updated: ${updated}  |  Removed: ${toDelete.length}`);
 
-  console.log("
-GST status breakdown:");
+  console.log(`\nGST status breakdown:`);
   for (const [k, v] of Object.entries(statusCounts).sort((a, b) => b[1] - a[1])) {
     console.log(`  ${k.padEnd(16)} ${v}`);
   }
 
-  console.log("
-Category breakdown:");
+  console.log(`\nCategory breakdown:`);
   for (const [k, v] of Object.entries(catCounts).sort((a, b) => b[1] - a[1])) {
     console.log(`  ${k.padEnd(16)} ${v}`);
   }
