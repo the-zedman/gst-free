@@ -4,8 +4,6 @@
 
 Search 1,400+ ATO-confirmed items, instantly see whether food is GST-free or taxable, and find budget-friendly recipes to stretch your grocery budget further.
 
-🌐 **[gst-free.vercel.app](https://gst-free.vercel.app)**
-
 ---
 
 ## What it does
