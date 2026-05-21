@@ -28,6 +28,24 @@ GST Free makes that knowledge accessible:
 | Hosting | [Vercel](https://vercel.com) |
 | Styling | [Tailwind CSS v4](https://tailwindcss.com) |
 
+## Updating the ATO food list
+
+When the ATO publishes an updated food list:
+
+1. Drop the new JSON file into `data/ato-gst-food-list.json` (replacing the existing file)
+2. Run the update script from the project root:
+
+```bash
+chmod +x update-ato-json.sh   # first time only
+./update-ato-json.sh
+```
+
+The script will show you the item count and extraction date, ask for confirmation, then run the seed. At the end it tells you to deploy with `vercel --prod`.
+
+The seed is safe to re-run at any time — it inserts new items, updates changed items, and removes items no longer in the ATO list. The output shows exactly how many items were inserted, updated, and removed.
+
+> **Note:** After seeding, glance at the category breakdown in the output. Any new items that land in the `other` bucket may need manual category assignment.
+
 ## Data source
 
 All GST status data is sourced from the official **[ATO Detailed Food List](https://www.ato.gov.au/law/view/document?DocID=GII/GSTIIFL1/NAT/ATO/00001)** — the authoritative reference for GST food classification in Australia.
