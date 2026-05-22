@@ -6,6 +6,7 @@ export interface Ingredient {
   quantity: string;
   unit: string | null;
   item_slug: string | null;
+  gst_status?: 'GST-free' | 'taxable' | null;
 }
 
 export interface Recipe {

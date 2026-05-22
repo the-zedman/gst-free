@@ -82,20 +82,32 @@ export default async function RecipePage({ params }: PageProps) {
         <ul className="space-y-2">
           {recipe.ingredients.map((ing, i) => (
             <li key={i} className="flex items-start gap-3">
-              <span className="mt-0.5 w-4 h-4 rounded-full border-2 border-green-400 shrink-0 print:border-gray-400" />
-              <span className="text-gray-700 text-sm leading-relaxed">
-                <span className="font-medium">{ing.quantity}{ing.unit ? ` ${ing.unit}` : ''}</span>{' '}
-                {ing.item_slug ? (
-                  <Link
-                    href={`/items/${ing.item_slug}`}
-                    className="text-green-700 hover:underline print:text-gray-900 print:no-underline"
-                  >
-                    {ing.name}
-                  </Link>
-                ) : (
-                  ing.name
+              <span className="mt-1 w-3.5 h-3.5 rounded-full border-2 border-green-400 shrink-0 print:border-gray-400" />
+              <div className="flex items-center flex-wrap gap-x-2 gap-y-1 text-sm text-gray-700">
+                <span>
+                  <span className="font-medium">{ing.quantity}{ing.unit ? ` ${ing.unit}` : ''}</span>{' '}
+                  {ing.item_slug ? (
+                    <Link
+                      href={`/items/${ing.item_slug}`}
+                      className="text-green-700 hover:underline print:text-gray-900 print:no-underline"
+                    >
+                      {ing.name}
+                    </Link>
+                  ) : (
+                    ing.name
+                  )}
+                </span>
+                {ing.gst_status === 'GST-free' && (
+                  <span className="text-xs font-semibold bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full whitespace-nowrap print:hidden">
+                    ✓ GST-Free
+                  </span>
                 )}
-              </span>
+                {ing.gst_status === 'taxable' && (
+                  <span className="text-xs font-semibold bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full whitespace-nowrap print:hidden">
+                    +10% GST
+                  </span>
+                )}
+              </div>
             </li>
           ))}
         </ul>
