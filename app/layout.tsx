@@ -10,16 +10,34 @@ const geist = Geist({
   subsets: ["latin"],
 });
 
+const title = "GST Free — Save money on Australian groceries";
+const description =
+  "Find GST-free foods, compare prices, discover budget-friendly recipes, and save thousands on your grocery bills. Search 1,400+ ATO-confirmed items.";
+
 export const metadata: Metadata = {
   metadataBase: new URL("https://gstfree.com.au"),
-  title: "GST Free — Save money on Australian groceries",
-  description:
-    "Find GST-free foods, compare prices, discover budget-friendly recipes, and save thousands on your grocery bills.",
+  title,
+  description,
+  keywords: [
+    "GST free food Australia",
+    "GST free groceries",
+    "ATO food list",
+    "GST free shopping",
+    "save money groceries Australia",
+    "Australian GST food",
+  ],
   openGraph: {
     siteName: "GST Free",
+    title,
+    description,
     url: "https://gstfree.com.au",
     locale: "en_AU",
     type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title,
+    description,
   },
   alternates: {
     canonical: "https://gstfree.com.au",
