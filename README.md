@@ -1,6 +1,6 @@
 # 🥦 GST Free
 
-**Australia's most complete GST-free food guide.**
+**[gstfree.com.au](https://gstfree.com.au) — Australia's most complete GST-free food guide.**
 
 Search 1,400+ ATO-confirmed items, instantly see whether food is GST-free or taxable, and find budget-friendly recipes to stretch your grocery budget further.
 

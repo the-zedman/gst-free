@@ -10,9 +10,19 @@ const geist = Geist({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://gstfree.com.au"),
   title: "GST Free — Save money on Australian groceries",
   description:
     "Find GST-free foods, compare prices, discover budget-friendly recipes, and save thousands on your grocery bills.",
+  openGraph: {
+    siteName: "GST Free",
+    url: "https://gstfree.com.au",
+    locale: "en_AU",
+    type: "website",
+  },
+  alternates: {
+    canonical: "https://gstfree.com.au",
+  },
 };
 
 export default function RootLayout({
