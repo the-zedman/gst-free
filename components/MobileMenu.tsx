@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const links = [
-  { href: "/", label: "Search" },
+  { href: "/", label: "GST-Free Food Search" },
   { href: "/recipes", label: "Recipes" },
 ];
 

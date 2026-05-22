@@ -15,7 +15,7 @@ export default function Header() {
 
         <nav className="hidden sm:flex items-center gap-6 text-sm text-gray-600">
           <Link href="/" className="hover:text-green-700 transition-colors">
-            Search
+            GST-Free Food Search
           </Link>
           <Link href="/recipes" className="hover:text-green-700 transition-colors">
             Recipes
