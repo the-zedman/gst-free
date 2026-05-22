@@ -1,4 +1,5 @@
 import Link from "next/link";
+import MobileMenu from "./MobileMenu";
 // import HeaderAuth from "./HeaderAuth"; // TODO: restore when Clerk production instance is configured
 
 export default function Header() {
@@ -24,6 +25,8 @@ export default function Header() {
             Food Support
           </Link> */}
         </nav>
+
+        <MobileMenu />
 
         {/* TODO: restore when Clerk production instance is configured */}
         {/* <HeaderAuth /> */}
