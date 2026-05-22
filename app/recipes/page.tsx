@@ -26,7 +26,7 @@ export default async function RecipesPage({ searchParams }: PageProps) {
   const recipes = await getRecipes(active === 'all' ? undefined : active);
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-10">
+    <div className="max-w-5xl w-full mx-auto px-4 py-10 overflow-x-hidden">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Recipes</h1>
         <p className="text-gray-500 text-sm">
@@ -57,7 +57,7 @@ export default async function RecipesPage({ searchParams }: PageProps) {
           <Link
             key={recipe.slug}
             href={`/recipes/${recipe.slug}`}
-            className="group bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition-shadow"
+            className="group bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition-shadow min-w-0"
           >
             <div className="relative aspect-[4/3] bg-gray-100">
               {recipe.image_path ? (
