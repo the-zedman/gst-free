@@ -1,29 +1,7 @@
 import 'server-only';
 import { sql } from '@/lib/db';
-
-export interface Ingredient {
-  name: string;
-  quantity: string;
-  unit: string | null;
-  item_slug: string | null;
-  gst_status?: 'GST-free' | 'taxable' | null;
-}
-
-export interface Recipe {
-  id: number;
-  slug: string;
-  title: string;
-  description: string;
-  meal_type: 'breakfast' | 'lunch' | 'dinner';
-  cuisine: string | null;
-  prep_time_mins: number;
-  cook_time_mins: number;
-  servings: number;
-  image_path: string | null;
-  ingredients: Ingredient[];
-  method: string[];
-  tags: string[];
-}
+import type { Recipe } from '@/lib/recipe-types';
+export type { Ingredient, Recipe } from '@/lib/recipe-types';
 
 export async function getRecipes(mealType?: string): Promise<Recipe[]> {
   const rows = mealType && mealType !== 'all'

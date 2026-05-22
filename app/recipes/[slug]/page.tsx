@@ -140,7 +140,7 @@ export default async function RecipePage({ params }: PageProps) {
       )}
 
       {/* Print button */}
-      <PrintButton />
+      <PrintButton recipe={recipe} />
     </div>
   );
 }
