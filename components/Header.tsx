@@ -1,5 +1,5 @@
 import Link from "next/link";
-import HeaderAuth from "./HeaderAuth";
+// import HeaderAuth from "./HeaderAuth"; // TODO: restore when Clerk production instance is configured
 
 export default function Header() {
   return (
@@ -19,12 +19,14 @@ export default function Header() {
           <Link href="/recipes" className="hover:text-green-700 transition-colors">
             Recipes
           </Link>
-          <Link href="/support" className="hover:text-green-700 transition-colors">
+          {/* TODO: restore when Food Support directory is built */}
+          {/* <Link href="/support" className="hover:text-green-700 transition-colors">
             Food Support
-          </Link>
+          </Link> */}
         </nav>
 
-        <HeaderAuth />
+        {/* TODO: restore when Clerk production instance is configured */}
+        {/* <HeaderAuth /> */}
       </div>
     </header>
   );

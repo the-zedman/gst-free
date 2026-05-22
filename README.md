@@ -86,11 +86,19 @@ Product data for barcode lookup comes from **[Open Food Facts](https://world.ope
 
 > **Disclaimer:** This site is for informational purposes only. Always verify GST status with your receipt or a qualified tax professional. Not financial or legal advice.
 
+## Temporarily hidden (not yet ready for public launch)
+
+The following features exist in the codebase but are commented out of the navigation until ready:
+
+- **Sign in / user accounts** — Clerk auth is wired up in dev but the production instance hasn't been configured yet. Hidden in `components/Header.tsx`.
+- **Food Support directory** — section not yet built. Nav link hidden in `components/Header.tsx`.
+
 ## Roadmap
 
 - [x] Barcode lookup — type or paste any product barcode
-- [ ] Recipes — 30 budget-friendly meals highlighting GST-free ingredients
+- [x] Recipes — 30 budget-friendly meals with GST status on every ingredient; more to come
 - [ ] Community food support directory — foodbanks, OzHarvest, SecondBite
 - [ ] User accounts — save favourites and shopping lists
+- [ ] More recipes — ongoing additions across breakfast, lunch, and dinner
 - [ ] Supermarket own-brand price comparisons
 - [ ] Weekly meal plans and shopping list builder
