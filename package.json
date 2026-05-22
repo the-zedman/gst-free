@@ -8,11 +8,13 @@
     "start": "next start",
     "lint": "eslint",
     "seed": "tsx scripts/seed-items.ts",
-    "seed:barcodes": "tsx scripts/seed-barcodes.ts"
+    "seed:barcodes": "tsx scripts/seed-barcodes.ts",
+    "gen-image": "tsx scripts/generate-image.ts"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.3.7",
     "@neondatabase/serverless": "^1.1.0",
+    "ai": "^6.0.188",
     "next": "16.2.6",
     "react": "19.2.4",
     "react-dom": "19.2.4",
