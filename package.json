@@ -14,10 +14,12 @@
   "dependencies": {
     "@clerk/nextjs": "^7.3.7",
     "@neondatabase/serverless": "^1.1.0",
+    "@types/nodemailer": "^8.0.0",
     "@zxing/browser": "^0.2.0",
     "@zxing/library": "^0.22.0",
     "ai": "^6.0.188",
     "next": "16.2.6",
+    "nodemailer": "^8.0.7",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "server-only": "^0.0.1"

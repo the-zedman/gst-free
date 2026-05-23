@@ -12,6 +12,7 @@ import ItemCard from "@/components/ItemCard";
 import Pagination from "@/components/Pagination";
 import BarcodeResult from "@/components/BarcodeResult";
 import AdSlot from "@/components/AdSlot";
+import Footer from "@/components/Footer";
 
 interface HomePageProps {
   searchParams: Promise<{
@@ -259,11 +260,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
           <AdSlot id="ad-prefooter" />
         </div>
 
-        <footer className="border-t border-gray-100 py-6 text-center text-xs text-gray-400 px-4 mt-auto">
-          GST status sourced from the{" "}
-          <span className="font-medium">ATO Detailed Food List</span>. Always
-          verify with your supermarket receipt. Not financial or legal advice.
-        </footer>
+        <Footer />
       </div>
     );
   }

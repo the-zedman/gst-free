@@ -20,10 +20,9 @@ export default function Header() {
           <Link href="/recipes" className="hover:text-green-700 transition-colors">
             Recipes
           </Link>
-          {/* TODO: restore when Food Support directory is built */}
-          {/* <Link href="/support" className="hover:text-green-700 transition-colors">
-            Food Support
-          </Link> */}
+          <Link href="/support" className="hover:text-green-700 transition-colors">
+            Support
+          </Link>
         </nav>
 
         <MobileMenu />
