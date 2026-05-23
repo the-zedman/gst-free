@@ -1,12 +1,15 @@
-import { getRecentSearches } from "@/lib/analytics";
+import Link from "next/link";
+import { getRecentSearches, getBarcodeNames } from "@/lib/analytics";
 
-function parseSearch(path: string): { type: "text" | "barcode"; query: string } {
+function parseSearch(path: string): { type: "text" | "barcode"; query: string; href: string } {
   try {
     const params = new URLSearchParams(path.split("?")[1] ?? "");
-    if (params.get("barcode")) return { type: "barcode", query: params.get("barcode")! };
-    if (params.get("q")) return { type: "text", query: params.get("q")! };
+    const barcode = params.get("barcode");
+    const q = params.get("q");
+    if (barcode) return { type: "barcode", query: barcode, href: `/?barcode=${encodeURIComponent(barcode)}` };
+    if (q) return { type: "text", query: q, href: `/?q=${encodeURIComponent(q)}` };
   } catch {}
-  return { type: "text", query: path };
+  return { type: "text", query: path, href: "/" };
 }
 
 function timeAgo(dateStr: string): string {
@@ -16,8 +19,7 @@ function timeAgo(dateStr: string): string {
   if (mins < 60) return `${mins}m ago`;
   const hrs = Math.floor(mins / 60);
   if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  return `${days}d ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
 }
 
 const COUNTRY_FLAGS: Record<string, string> = {
@@ -27,8 +29,13 @@ const COUNTRY_FLAGS: Record<string, string> = {
 export default async function SearchesPage() {
   const rows = await getRecentSearches(300);
 
-  const textCount = rows.filter((r) => parseSearch(r.path).type === "text").length;
-  const barcodeCount = rows.length - textCount;
+  const parsed = rows.map((r) => ({ ...r, ...parseSearch(r.path) }));
+
+  const barcodeList = [...new Set(parsed.filter((r) => r.type === "barcode").map((r) => r.query))];
+  const barcodeNames = await getBarcodeNames(barcodeList);
+
+  const textCount = parsed.filter((r) => r.type === "text").length;
+  const barcodeCount = parsed.length - textCount;
 
   return (
     <div className="space-y-6">
@@ -43,24 +50,40 @@ export default async function SearchesPage() {
         </div>
       </div>
 
-      {rows.length === 0 ? (
+      {parsed.length === 0 ? (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-10 text-center text-gray-400 text-sm">
           No searches recorded yet.
         </div>
       ) : (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="divide-y divide-gray-50">
-            {rows.map((row, i) => {
-              const { type, query } = parseSearch(row.path);
+            {parsed.map((row, i) => {
+              const description = row.type === "barcode"
+                ? (barcodeNames[row.query] ?? null)
+                : null;
               const flag = row.country ? (COUNTRY_FLAGS[row.country] ?? row.country) : null;
+
               return (
-                <div key={i} className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors">
-                  <span className="text-base w-5 shrink-0" title={type === "barcode" ? "Barcode scan" : "Text search"}>
-                    {type === "barcode" ? "📷" : "🔍"}
+                <Link
+                  key={i}
+                  href={row.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors group"
+                >
+                  <span className="text-base w-5 shrink-0" title={row.type === "barcode" ? "Barcode scan" : "Text search"}>
+                    {row.type === "barcode" ? "📷" : "🔍"}
                   </span>
-                  <span className="flex-1 text-sm text-gray-800 font-mono truncate" title={query}>
-                    {query}
-                  </span>
+
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm text-gray-800 font-mono group-hover:text-green-700 transition-colors truncate block">
+                      {row.query}
+                    </span>
+                    {description && (
+                      <span className="text-xs text-gray-400 truncate block">{description}</span>
+                    )}
+                  </div>
+
                   <span className="text-xs text-gray-300 shrink-0 hidden sm:block capitalize">
                     {row.device}
                   </span>
@@ -72,7 +95,7 @@ export default async function SearchesPage() {
                   <span className="text-xs text-gray-300 shrink-0 w-16 text-right">
                     {timeAgo(row.created_at)}
                   </span>
-                </div>
+                </Link>
               );
             })}
           </div>

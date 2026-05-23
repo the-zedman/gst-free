@@ -169,6 +169,16 @@ export interface SearchRow {
   created_at: string;
 }
 
+export async function getBarcodeNames(barcodes: string[]): Promise<Record<string, string>> {
+  if (barcodes.length === 0) return {};
+  const rows = (await sql`
+    SELECT barcode, product_name, brand FROM barcodes WHERE barcode = ANY(${barcodes})
+  `) as Array<{ barcode: string; product_name: string; brand: string | null }>;
+  return Object.fromEntries(
+    rows.map((r) => [r.barcode, r.brand ? `${r.product_name} · ${r.brand}` : r.product_name])
+  );
+}
+
 export async function getRecentSearches(limit = 300): Promise<SearchRow[]> {
   await ensureTable();
   return (await sql`
