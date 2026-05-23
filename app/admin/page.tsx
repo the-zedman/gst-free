@@ -84,12 +84,11 @@ export default async function AdminDashboard() {
   }));
   const hourlyMax = Math.max(...hourly.map((r) => r.visits), 1);
 
-  // Build last-30-days array (fill gaps)
-  const today = new Date();
+  // Build last-30-days array (fill gaps) — dates must match Sydney tz used in SQL
   const daily = Array.from({ length: 30 }, (_, i) => {
-    const d = new Date(today);
+    const d = new Date();
     d.setDate(d.getDate() - (29 - i));
-    const date = d.toISOString().slice(0, 10);
+    const date = d.toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" }); // YYYY-MM-DD
     return {
       label: date.slice(5), // MM-DD
       visits: dailyRaw.find((r) => r.date === date)?.visits ?? 0,

@@ -106,7 +106,7 @@ export async function getSummaryStats(): Promise<SummaryStats> {
 
 export async function getHourlyToday(): Promise<HourlyRow[]> {
   await ensureTable();
-  return (await sql`
+  const rows = (await sql`
     SELECT
       EXTRACT(HOUR FROM created_at AT TIME ZONE 'Australia/Sydney')::int AS hour,
       COUNT(*)::int AS visits
@@ -115,12 +115,13 @@ export async function getHourlyToday(): Promise<HourlyRow[]> {
       AND device != 'bot'
     GROUP BY 1
     ORDER BY 1
-  `) as HourlyRow[];
+  `) as Array<Record<string, string>>;
+  return rows.map((r) => ({ hour: Number(r.hour), visits: Number(r.visits) }));
 }
 
 export async function getDailyLast30(): Promise<DailyRow[]> {
   await ensureTable();
-  return (await sql`
+  const rows = (await sql`
     SELECT
       to_char(created_at AT TIME ZONE 'Australia/Sydney', 'YYYY-MM-DD') AS date,
       COUNT(*)::int AS visits
@@ -129,7 +130,8 @@ export async function getDailyLast30(): Promise<DailyRow[]> {
       AND device != 'bot'
     GROUP BY 1
     ORDER BY 1
-  `) as DailyRow[];
+  `) as Array<Record<string, string>>;
+  return rows.map((r) => ({ date: r.date, visits: Number(r.visits) }));
 }
 
 export async function getTopPages(limit = 10): Promise<TopPage[]> {
