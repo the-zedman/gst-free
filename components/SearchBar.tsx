@@ -154,14 +154,14 @@ export default function SearchBar({ defaultValue = "" }: SearchBarProps) {
             type="search"
             value={value}
             onChange={handleChange}
-            placeholder="Search foods — or type/paste a barcode number"
+            placeholder="Search foods or enter a barcode"
             autoComplete="off"
             inputMode="text"
             className={`w-full pl-12 py-3.5 text-base rounded-2xl border-2 focus:outline-none shadow-sm bg-white placeholder:text-gray-400 transition-colors font-${isBarcode ? "mono" : "sans"} ${
               isBarcode
                 ? "border-blue-300 focus:border-blue-500"
                 : "border-green-200 focus:border-green-500"
-            } ${value ? "pr-20 sm:pr-12" : "pr-14 sm:pr-12"}`}
+            } ${value ? "pr-24 sm:pr-12" : "pr-16 sm:pr-12"}`}
           />
 
           {/* Scan button — mobile only, always visible */}
@@ -169,9 +169,9 @@ export default function SearchBar({ defaultValue = "" }: SearchBarProps) {
             type="button"
             onClick={openScanner}
             aria-label="Scan barcode"
-            className="sm:hidden absolute right-3 flex items-center justify-center w-9 h-9 rounded-xl bg-green-50 hover:bg-green-100 text-green-700 transition-colors"
+            className="sm:hidden absolute right-2 flex items-center justify-center w-12 h-12 rounded-xl bg-green-600 hover:bg-green-700 text-white transition-colors shadow-sm"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/>
               <path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
               <line x1="8" y1="12" x2="8" y2="12.01"/><line x1="12" y1="8" x2="12" y2="16"/>
@@ -184,7 +184,7 @@ export default function SearchBar({ defaultValue = "" }: SearchBarProps) {
             <button
               type="button"
               onClick={handleClear}
-              className="absolute right-14 sm:right-4 text-gray-400 hover:text-gray-600 text-xl leading-none"
+              className="absolute right-16 sm:right-4 text-gray-400 hover:text-gray-600 text-xl leading-none"
               aria-label="Clear search"
             >
               ×
