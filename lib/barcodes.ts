@@ -28,19 +28,38 @@ const TAXABLE_TAGS = [
 ];
 
 const FREE_TAGS = [
+  // Produce
   "en:fresh-vegetables", "en:vegetables", "en:fresh-fruits", "en:fruits",
-  "en:meats", "en:fresh-meats",
+  "en:frozen-vegetables", "en:frozen-fruits", "en:dried-fruits", "en:raisins",
+  // Meat & seafood
+  "en:meats", "en:fresh-meats", "en:frozen-meats", "en:poultry",
   "en:fish", "en:seafoods", "en:shellfishes", "en:crustaceans",
+  "en:canned-fish", "en:canned-tuna", "en:canned-salmon", "en:canned-sardines", "en:tinned-fish",
+  // Bread & bakery
   "en:breads", "en:bread-rolls", "en:sourdough-breads", "en:flatbreads", "en:wraps",
+  // Dairy & eggs
   "en:milks", "en:cheeses", "en:yogurts", "en:dairy-products",
+  "en:butters", "en:margarines",
+  "en:plant-milks", "en:soy-milks", "en:oat-milks", "en:almond-milks", "en:rice-milks",
   "en:eggs",
+  // Beverages
   "en:waters", "en:spring-waters", "en:mineral-waters",
   "en:fruit-juices", "en:fruit-nectars", "en:vegetable-juices",
-  "en:flours", "en:rice", "en:pasta", "en:noodles",
+  "en:coffees", "en:teas",
+  // Grains, pasta, legumes
+  "en:flours", "en:rice", "en:pasta", "en:dried-pasta", "en:noodles",
+  "en:oats", "en:oat-flakes", "en:rolled-oats",
+  "en:legumes", "en:beans", "en:lentils", "en:chickpeas", "en:peas", "en:dried-legumes",
+  "en:canned-vegetables", "en:canned-tomatoes", "en:canned-legumes",
+  // Oils, condiments, seasonings
   "en:honey", "en:olive-oils", "en:vegetable-oils", "en:cooking-oils",
   "en:spices", "en:herbs", "en:dried-herbs",
-  "en:nuts", "en:seeds",
-  "en:coffees", "en:teas",
+  "en:salts", "en:table-salts", "en:sea-salts", "en:rock-salts", "en:iodised-salts",
+  "en:vinegars",
+  "en:broths", "en:stocks", "en:soups",
+  // Nuts & seeds
+  "en:nuts", "en:seeds", "en:nut-butters", "en:peanut-butters",
+  // Baby food
   "en:baby-foods", "en:infant-formulas",
 ];
 
@@ -72,6 +91,40 @@ export function inferGstFromTags(tags: string[]): GstResult {
     gst_confidence: "low",
     gst_notes: "Product category not in ATO GST food rules — verify at ato.gov.au",
   };
+}
+
+// Strip sizes, punctuation and noise words; search ATO items table for a match
+async function searchAtoByName(productName: string): Promise<GstResult | null> {
+  const keywords = productName
+    .replace(/\d+(\.\d+)?\s*(g|kg|ml|l|cl|mg|oz|lb|pack|pk|x)\b/gi, "") // sizes
+    .replace(/[^a-z\s]/gi, " ")
+    .split(/\s+/)
+    .filter(w => w.length > 2)
+    .join(" ")
+    .trim();
+
+  if (!keywords) return null;
+
+  try {
+    const rows = await sql`
+      SELECT name, gst_status
+      FROM items
+      WHERE to_tsvector('english', name) @@ plainto_tsquery('english', ${keywords})
+      ORDER BY ts_rank(to_tsvector('english', name), plainto_tsquery('english', ${keywords})) DESC
+      LIMIT 1
+    ` as Array<{ name: string; gst_status: string }>;
+
+    if (!rows.length) return null;
+
+    const { name, gst_status } = rows[0];
+    return {
+      gst_status: gst_status as GstResult["gst_status"],
+      gst_confidence: "medium",
+      gst_notes: `Matched ATO item: "${name}" — verify this applies to your product`,
+    };
+  } catch {
+    return null;
+  }
 }
 
 async function ensureTable(): Promise<void> {
@@ -120,7 +173,11 @@ async function fetchFromApi(barcode: string): Promise<BarcodeProduct | null> {
   if (!name) return null;
 
   const tags = (p.categories_tags ?? []) as string[];
-  const { gst_status, gst_confidence, gst_notes } = inferGstFromTags(tags);
+  let { gst_status, gst_confidence, gst_notes } = inferGstFromTags(tags);
+  if (gst_status === "unknown") {
+    const atoMatch = await searchAtoByName(name);
+    if (atoMatch) ({ gst_status, gst_confidence, gst_notes } = atoMatch);
+  }
   const rawBrand = ((p.brands ?? "") as string).split(",")[0].trim();
   const brand = rawBrand || null;
   const image_url = (p.image_front_url ?? null) as string | null;
@@ -169,6 +226,31 @@ export async function lookupBarcode(barcode: string): Promise<BarcodeProduct | n
     const c = rows[0];
     const ageMs = Date.now() - new Date(c.updated_at as string).getTime();
     if (ageMs < 30 * 24 * 60 * 60 * 1000) {
+      // Re-run ATO name search on cached unknowns to improve them without a full API call
+      if (c.gst_status === "unknown") {
+        const atoMatch = await searchAtoByName(c.product_name as string);
+        if (atoMatch) {
+          await sql`
+            UPDATE barcodes SET
+              gst_status = ${atoMatch.gst_status},
+              gst_confidence = ${atoMatch.gst_confidence},
+              gst_notes = ${atoMatch.gst_notes},
+              updated_at = NOW()
+            WHERE barcode = ${barcode}
+          `;
+          return {
+            barcode: c.barcode as string,
+            product_name: c.product_name as string,
+            brand: c.brand as string | null,
+            gst_status: atoMatch.gst_status,
+            gst_confidence: atoMatch.gst_confidence,
+            gst_notes: atoMatch.gst_notes,
+            image_url: c.image_url as string | null,
+            off_categories: c.off_categories as string | null,
+            source: "cache",
+          };
+        }
+      }
       return {
         barcode: c.barcode as string,
         product_name: c.product_name as string,
