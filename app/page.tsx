@@ -46,16 +46,19 @@ const COMING_SOON = [
     icon: "📖",
     title: "Budget Shopping Guide",
     desc: "Practical strategies for building a weekly shop around GST-free staples — without sacrificing nutrition or variety.",
+    image: "/images/coming-soon-budget-guide.jpg",
   },
   {
     icon: "🤝",
     title: "Food Support Directory",
     desc: "Find food banks, community pantries, and emergency food relief services near you across Australia.",
+    image: "/images/coming-soon-food-support.jpg",
   },
   {
     icon: "🏷️",
     title: "Weekly Specials Tracker",
     desc: "Track which GST-free items are on special at Coles, Woolworths, and Aldi this week.",
+    image: "/images/coming-soon-specials.jpg",
   },
 ];
 
@@ -86,28 +89,41 @@ export default async function HomePage({ searchParams }: HomePageProps) {
       <div className="min-h-screen flex flex-col">
 
         {/* Hero */}
-        <section className="bg-gradient-to-b from-green-50 to-white px-4 pt-12 pb-10">
-          <div className="max-w-3xl mx-auto text-center">
-            <div className="inline-flex items-center gap-2 bg-green-100 text-green-700 text-sm font-semibold px-3 py-1.5 rounded-full mb-5">
-              🇦🇺 For Australian Shoppers
+        <section className="bg-gradient-to-br from-green-50 via-white to-green-50 px-4 pt-10 pb-10">
+          <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+            {/* Text + search */}
+            <div className="text-center lg:text-left">
+              <div className="inline-flex items-center gap-2 bg-green-100 text-green-700 text-sm font-semibold px-3 py-1.5 rounded-full mb-5">
+                🇦🇺 For Australian Shoppers
+              </div>
+              <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-4 leading-tight">
+                Save money on every grocery shop
+              </h1>
+              <p className="text-gray-500 text-lg mb-7 max-w-xl lg:mx-0 mx-auto">
+                Search 1,400+ ATO-confirmed GST-free foods and start keeping more
+                money in your pocket every week.
+              </p>
+              <Suspense>
+                <SearchBar defaultValue="" />
+              </Suspense>
+              <div className="flex flex-wrap items-center justify-center lg:justify-start gap-x-6 gap-y-2 mt-6 text-sm text-gray-500">
+                {["ATO-confirmed", "1,400+ items", "Free to use", "Barcode scanner"].map((t) => (
+                  <span key={t} className="flex items-center gap-1.5">
+                    <span className="text-green-500 font-bold">✓</span> {t}
+                  </span>
+                ))}
+              </div>
             </div>
-            <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-4 leading-tight">
-              Save money on every
-              <br className="hidden sm:block" /> grocery shop
-            </h1>
-            <p className="text-gray-500 text-lg mb-7 max-w-xl mx-auto">
-              Search 1,400+ ATO-confirmed GST-free foods and start keeping more
-              money in your pocket every week.
-            </p>
-            <Suspense>
-              <SearchBar defaultValue="" />
-            </Suspense>
-            <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 mt-6 text-sm text-gray-500">
-              {["ATO-confirmed", "1,400+ items", "Free to use", "Barcode scanner"].map((t) => (
-                <span key={t} className="flex items-center gap-1.5">
-                  <span className="text-green-500 font-bold">✓</span> {t}
-                </span>
-              ))}
+            {/* Hero image */}
+            <div className="relative rounded-3xl overflow-hidden shadow-2xl aspect-[4/3] hidden lg:block">
+              <Image
+                src="/images/hero-groceries.jpg"
+                alt="Fresh Australian groceries"
+                fill
+                className="object-cover"
+                priority
+                sizes="50vw"
+              />
             </div>
           </div>
         </section>
@@ -209,17 +225,29 @@ export default async function HomePage({ searchParams }: HomePageProps) {
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-            {COMING_SOON.map(({ icon, title, desc }) => (
+            {COMING_SOON.map(({ icon, title, desc, image }) => (
               <div
                 key={title}
-                className="bg-white rounded-2xl border border-gray-100 p-6 relative overflow-hidden"
+                className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm min-w-0"
               >
-                <span className="absolute top-4 right-4 text-xs font-semibold bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full">
-                  Coming Soon
-                </span>
-                <div className="text-3xl mb-3">{icon}</div>
-                <h3 className="font-semibold text-gray-700 mb-2 pr-16">{title}</h3>
-                <p className="text-sm text-gray-400 leading-relaxed">{desc}</p>
+                <div className="relative aspect-[16/9] bg-gray-100">
+                  <Image
+                    src={image}
+                    alt={title}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 640px) 100vw, 33vw"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+                </div>
+                <div className="p-5 relative">
+                  <span className="absolute top-4 right-4 text-xs font-semibold bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">
+                    Coming Soon
+                  </span>
+                  <div className="text-2xl mb-2">{icon}</div>
+                  <h3 className="font-semibold text-gray-700 mb-1 pr-20">{title}</h3>
+                  <p className="text-sm text-gray-400 leading-relaxed">{desc}</p>
+                </div>
               </div>
             ))}
           </div>
