@@ -3,17 +3,14 @@
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import type { ProductInfo } from "@/app/api/admin/ads/generate/route";
 
 type AdType = "ai" | "upload";
-type Step = "type" | "source" | "copy" | "details" | "saving";
+type Step = "type" | "source" | "copy" | "details";
 
-interface ProductInfo {
-  title: string; price: string; description: string;
-  features: string[]; imageUrl: string | null; rating: string; reviewCount: string;
-}
 interface GeneratedCopy {
-  adName: string; title: string; subtitle: string; ctaText: string;
-  altText: string; imagePrompt: string;
+  adName: string; title: string; subtitle: string;
+  ctaText: string; altText: string; imagePrompt: string;
 }
 
 const SLOTS = [
@@ -28,22 +25,30 @@ export default function NewAdPage() {
   const [adType, setAdType] = useState<AdType | null>(null);
   const [step, setStep] = useState<Step>("type");
 
-  // AI flow state
-  const [amazonUrl, setAmazonUrl] = useState("");
-  const [scraping, setScraping] = useState(false);
-  const [scrapeError, setScrapeError] = useState("");
+  // AI flow — screenshot
+  const [screenshotPreview, setScreenshotPreview] = useState<string>("");
+  const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
+  const screenshotRef = useRef<HTMLInputElement>(null);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analyzeError, setAnalyzeError] = useState("");
   const [productInfo, setProductInfo] = useState<ProductInfo | null>(null);
+
+  // AI flow — product images (up to 6)
+  const [productImages, setProductImages] = useState<Array<{ file: File; preview: string; url: string | null }>>([]);
+  const productImageRef = useRef<HTMLInputElement>(null);
+
+  // AI flow — copy + image generation
   const [generatingCopy, setGeneratingCopy] = useState(false);
   const [copy, setCopy] = useState<GeneratedCopy | null>(null);
   const [generatingImage, setGeneratingImage] = useState(false);
   const [generatedImageUrl, setGeneratedImageUrl] = useState("");
 
-  // Upload flow state
+  // Upload flow
   const [uploadedImageUrl, setUploadedImageUrl] = useState("");
   const [uploading, setUploading] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
+  const uploadRef = useRef<HTMLInputElement>(null);
 
-  // Shared ad details
+  // Shared details
   const [name, setName] = useState("");
   const [title, setTitle] = useState("");
   const [subtitle, setSubtitle] = useState("");
@@ -60,27 +65,80 @@ export default function NewAdPage() {
 
   const imageUrl = adType === "ai" ? generatedImageUrl : uploadedImageUrl;
 
-  // ── AI flow actions ────────────────────────────────────────────────────
+  // ── Screenshot handling ───────────────────────────────────────────────
 
-  async function handleScrape() {
-    setScraping(true); setScrapeError(""); setProductInfo(null); setCopy(null);
-    const res = await fetch("/api/admin/ads/generate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "scrape", amazonUrl }),
-    });
+  function handleScreenshotSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setScreenshotFile(file);
+    setScreenshotPreview(URL.createObjectURL(file));
+    setAnalyzeError("");
+    setProductInfo(null);
+    setCopy(null);
+    setGeneratedImageUrl("");
+  }
+
+  async function handleAnalyze() {
+    if (!screenshotFile) return;
+    setAnalyzing(true); setAnalyzeError(""); setProductInfo(null); setCopy(null);
+
+    const formData = new FormData();
+    formData.append("screenshot", screenshotFile);
+
+    const res = await fetch("/api/admin/ads/analyze-screenshot", { method: "POST", body: formData });
     const data = await res.json() as { productInfo?: ProductInfo; error?: string };
-    setScraping(false);
-    if (data.error) { setScrapeError(data.error); return; }
+    setAnalyzing(false);
+
+    if (data.error) { setAnalyzeError(data.error); return; }
     setProductInfo(data.productInfo!);
     setStep("copy");
     handleGenerateCopy(data.productInfo!);
   }
 
+  // ── Product images ────────────────────────────────────────────────────
+
+  function handleProductImagesSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    const remaining = 6 - productImages.length;
+    const toAdd = files.slice(0, remaining);
+
+    const newImages = toAdd.map((file) => ({
+      file,
+      preview: URL.createObjectURL(file),
+      url: null as string | null,
+    }));
+    setProductImages((prev) => [...prev, ...newImages]);
+
+    // Upload each to blob
+    newImages.forEach((img, i) => {
+      const idx = productImages.length + i;
+      uploadProductImage(img.file, idx);
+    });
+
+    e.target.value = "";
+  }
+
+  async function uploadProductImage(file: File, idx: number) {
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch("/api/admin/ads/upload", { method: "POST", body: formData });
+    const data = await res.json() as { url?: string };
+    if (data.url) {
+      setProductImages((prev) => prev.map((img, i) => i === idx ? { ...img, url: data.url! } : img));
+    }
+  }
+
+  function removeProductImage(idx: number) {
+    setProductImages((prev) => prev.filter((_, i) => i !== idx));
+  }
+
+  // ── Copy + image generation ───────────────────────────────────────────
+
   async function handleGenerateCopy(info?: ProductInfo) {
     const product = info ?? productInfo;
     if (!product) return;
     setGeneratingCopy(true); setCopy(null);
+
     const res = await fetch("/api/admin/ads/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -88,6 +146,7 @@ export default function NewAdPage() {
     });
     const data = await res.json() as { copy?: GeneratedCopy; error?: string };
     setGeneratingCopy(false);
+
     if (data.copy) {
       setCopy(data.copy);
       setName(data.copy.adName);
@@ -101,17 +160,24 @@ export default function NewAdPage() {
   async function handleGenerateImage() {
     if (!productInfo || !copy) return;
     setGeneratingImage(true); setGeneratedImageUrl("");
+
+    const productImageUrls = productImages.filter((img) => img.url).map((img) => img.url!);
+
     const res = await fetch("/api/admin/ads/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "generate-image", productInfo: { ...productInfo, imagePrompt: copy.imagePrompt } }),
+      body: JSON.stringify({
+        action: "generate-image",
+        productInfo: { ...productInfo, imagePrompt: copy.imagePrompt },
+        productImageUrls,
+      }),
     });
     const data = await res.json() as { imageUrl?: string; error?: string };
     setGeneratingImage(false);
     if (data.imageUrl) setGeneratedImageUrl(data.imageUrl);
   }
 
-  // ── Upload flow actions ───────────────────────────────────────────────
+  // ── Upload flow ───────────────────────────────────────────────────────
 
   async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -162,20 +228,16 @@ export default function NewAdPage() {
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
           <h2 className="font-semibold text-gray-900">How would you like to create this ad?</h2>
           <div className="grid grid-cols-2 gap-4">
-            <button
-              onClick={() => { setAdType("ai"); setStep("source"); }}
-              className="flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-gray-200 hover:border-green-400 hover:bg-green-50 transition-all text-center group"
-            >
+            <button onClick={() => { setAdType("ai"); setStep("source"); }}
+              className="flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-gray-200 hover:border-green-400 hover:bg-green-50 transition-all text-center group">
               <span className="text-4xl">🤖</span>
               <div>
                 <p className="font-semibold text-gray-900 group-hover:text-green-700">AI Generated</p>
-                <p className="text-xs text-gray-400 mt-1">Paste an Amazon URL — Claude extracts product info and generates the ad image and copy.</p>
+                <p className="text-xs text-gray-400 mt-1">Screenshot an Amazon product page. Claude reads it and generates compelling ad copy and a product image.</p>
               </div>
             </button>
-            <button
-              onClick={() => { setAdType("upload"); setStep("source"); }}
-              className="flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-all text-center group"
-            >
+            <button onClick={() => { setAdType("upload"); setStep("source"); }}
+              className="flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-all text-center group">
               <span className="text-4xl">🖼️</span>
               <div>
                 <p className="font-semibold text-gray-900 group-hover:text-blue-700">Upload Image</p>
@@ -186,25 +248,90 @@ export default function NewAdPage() {
         </div>
       )}
 
-      {/* Step 2a: AI — Amazon URL */}
+      {/* Step 2a: AI — Screenshot + product images */}
       {step === "source" && adType === "ai" && (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
-          <h2 className="font-semibold text-gray-900">Paste the Amazon product URL</h2>
-          <p className="text-sm text-gray-400">Claude will fetch the page, extract the product details, then generate ad copy and a product image. You can edit everything before saving.</p>
-          <input
-            type="url"
-            value={amazonUrl}
-            onChange={(e) => setAmazonUrl(e.target.value)}
-            placeholder="https://www.amazon.com.au/dp/..."
-            className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
-          />
-          {scrapeError && <p className="text-sm text-red-600 bg-red-50 rounded-xl px-4 py-3">{scrapeError}</p>}
+        <div className="space-y-4">
+          {/* Screenshot upload */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
+            <div>
+              <h2 className="font-semibold text-gray-900">Screenshot the Amazon product page</h2>
+              <p className="text-sm text-gray-400 mt-1">Take a screenshot of the full product page and upload it here. Claude will extract the product name, price, discount, rating, features and specs.</p>
+            </div>
+
+            <input ref={screenshotRef} type="file" accept="image/*" className="hidden" onChange={handleScreenshotSelect} />
+
+            {!screenshotPreview ? (
+              <button onClick={() => screenshotRef.current?.click()}
+                className="w-full border-2 border-dashed border-gray-200 hover:border-green-400 rounded-xl p-10 text-center transition-colors group">
+                <p className="text-3xl mb-2">📸</p>
+                <p className="text-sm text-gray-500 group-hover:text-green-700">Click to upload screenshot</p>
+                <p className="text-xs text-gray-300 mt-1">PNG, JPG — any size</p>
+              </button>
+            ) : (
+              <div className="space-y-3">
+                <div className="relative rounded-xl overflow-hidden border border-gray-100">
+                  <img src={screenshotPreview} alt="Screenshot preview" className="w-full max-h-64 object-contain bg-gray-50" />
+                </div>
+                <button onClick={() => screenshotRef.current?.click()} className="text-xs text-green-700 hover:underline">
+                  Replace screenshot
+                </button>
+              </div>
+            )}
+
+            {analyzeError && <p className="text-sm text-red-600 bg-red-50 rounded-xl px-4 py-3">{analyzeError}</p>}
+          </div>
+
+          {/* Product images */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
+            <div>
+              <h2 className="font-semibold text-gray-900">Product photos <span className="text-gray-400 font-normal">(optional, recommended)</span></h2>
+              <p className="text-sm text-gray-400 mt-1">Upload up to 6 product photos from the Amazon listing. Claude will use these to accurately describe the product&apos;s appearance when generating the ad image — much better results than without them.</p>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              {productImages.map((img, i) => (
+                <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-gray-100 bg-gray-50 group">
+                  <img src={img.preview} alt={`Product image ${i + 1}`} className="w-full h-full object-contain" />
+                  {!img.url && (
+                    <div className="absolute inset-0 bg-white/60 flex items-center justify-center">
+                      <span className="text-xs text-gray-500">Uploading…</span>
+                    </div>
+                  )}
+                  <button
+                    onClick={() => removeProductImage(i)}
+                    className="absolute top-1 right-1 w-5 h-5 bg-black/40 hover:bg-red-500 text-white rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  >✕</button>
+                </div>
+              ))}
+
+              {productImages.length < 6 && (
+                <button
+                  onClick={() => productImageRef.current?.click()}
+                  className="aspect-square rounded-xl border-2 border-dashed border-gray-200 hover:border-green-400 flex flex-col items-center justify-center text-gray-300 hover:text-green-600 transition-colors"
+                >
+                  <span className="text-2xl">+</span>
+                  <span className="text-xs mt-1">{productImages.length === 0 ? "Add photos" : "Add more"}</span>
+                </button>
+              )}
+            </div>
+
+            <input
+              ref={productImageRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              multiple
+              className="hidden"
+              onChange={handleProductImagesSelect}
+            />
+            <p className="text-xs text-gray-300">{productImages.length}/6 photos added</p>
+          </div>
+
           <button
-            onClick={handleScrape}
-            disabled={scraping || !amazonUrl}
-            className="bg-green-600 hover:bg-green-700 disabled:bg-green-300 text-white font-semibold text-sm px-5 py-2.5 rounded-xl transition-colors"
+            onClick={handleAnalyze}
+            disabled={analyzing || !screenshotFile}
+            className="w-full bg-green-600 hover:bg-green-700 disabled:bg-green-300 text-white font-semibold py-3 rounded-xl transition-colors"
           >
-            {scraping ? "Fetching product…" : "Fetch & Generate →"}
+            {analyzing ? "Analysing screenshot…" : "Analyse Screenshot →"}
           </button>
         </div>
       )}
@@ -214,12 +341,9 @@ export default function NewAdPage() {
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
           <h2 className="font-semibold text-gray-900">Upload your ad image</h2>
           <p className="text-sm text-gray-400">Recommended size: 1200×400px. JPG, PNG, or WebP. Max 3MB.</p>
-          <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleFileUpload} />
-          <button
-            onClick={() => fileRef.current?.click()}
-            disabled={uploading}
-            className="w-full border-2 border-dashed border-gray-200 hover:border-green-400 rounded-xl p-10 text-center transition-colors group"
-          >
+          <input ref={uploadRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleFileUpload} />
+          <button onClick={() => uploadRef.current?.click()} disabled={uploading}
+            className="w-full border-2 border-dashed border-gray-200 hover:border-green-400 rounded-xl p-10 text-center transition-colors group">
             <p className="text-3xl mb-2">📁</p>
             <p className="text-sm text-gray-500 group-hover:text-green-700">{uploading ? "Uploading…" : "Click to choose a file"}</p>
           </button>
@@ -227,22 +351,29 @@ export default function NewAdPage() {
         </div>
       )}
 
-      {/* Step 3: AI — review copy and generate image */}
+      {/* Step 3: Review copy + generate image */}
       {step === "copy" && adType === "ai" && (
         <div className="space-y-4">
-          {/* Product info card */}
+          {/* Extracted product info */}
           {productInfo && (
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-              <h2 className="font-semibold text-gray-900 mb-3">Extracted product info</h2>
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div><span className="text-gray-400">Product:</span> <span className="text-gray-800">{productInfo.title.slice(0, 80)}{productInfo.title.length > 80 ? "…" : ""}</span></div>
-                <div><span className="text-gray-400">Price:</span> <span className="text-gray-800 font-semibold">{productInfo.price || "—"}</span></div>
-                <div><span className="text-gray-400">Rating:</span> <span className="text-gray-800">{productInfo.rating || "—"} ★ ({productInfo.reviewCount || "—"} reviews)</span></div>
+              <h2 className="font-semibold text-gray-900 mb-3">Extracted from screenshot</h2>
+              <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                <div><span className="text-gray-400">Product:</span> <span className="text-gray-800">{productInfo.title?.slice(0, 70)}{(productInfo.title?.length ?? 0) > 70 ? "…" : ""}</span></div>
+                <div><span className="text-gray-400">Brand:</span> <span className="text-gray-800">{productInfo.brand || "—"}</span></div>
+                <div><span className="text-gray-400">Price:</span> <span className="font-semibold text-gray-900">{productInfo.price || "—"}</span>{productInfo.rrp && <span className="text-gray-400 line-through ml-2">{productInfo.rrp}</span>}{productInfo.discount && <span className="text-green-600 ml-2">{productInfo.discount} off</span>}</div>
+                <div><span className="text-gray-400">Rating:</span> <span className="text-gray-800">{productInfo.rating || "—"}★ ({productInfo.reviewCount || "—"})</span></div>
+                {productInfo.socialProof && <div className="col-span-2"><span className="text-gray-400">Social proof:</span> <span className="text-gray-800">{productInfo.socialProof}</span></div>}
               </div>
-              {productInfo.features.length > 0 && (
+              {productInfo.features?.length > 0 && (
                 <ul className="mt-3 space-y-1">
-                  {productInfo.features.slice(0, 4).map((f, i) => <li key={i} className="text-xs text-gray-500">• {f}</li>)}
+                  {productInfo.features.slice(0, 5).map((f, i) => <li key={i} className="text-xs text-gray-500">• {f}</li>)}
                 </ul>
+              )}
+              {productInfo.specs && Object.keys(productInfo.specs).length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-400">
+                  {Object.entries(productInfo.specs).map(([k, v]) => <span key={k}><span className="font-medium text-gray-500">{k}:</span> {v}</span>)}
+                </div>
               )}
             </div>
           )}
@@ -252,23 +383,24 @@ export default function NewAdPage() {
             <div className="flex items-center justify-between">
               <h2 className="font-semibold text-gray-900">Generated ad copy</h2>
               <button onClick={() => handleGenerateCopy()} disabled={generatingCopy} className="text-xs text-green-700 hover:underline disabled:opacity-50">
-                {generatingCopy ? "Generating…" : "↺ Regenerate copy"}
+                {generatingCopy ? "Generating…" : "↺ Regenerate"}
               </button>
             </div>
             {generatingCopy ? (
               <div className="animate-pulse space-y-2">
                 <div className="h-4 bg-gray-100 rounded w-2/3" />
                 <div className="h-3 bg-gray-100 rounded w-1/2" />
+                <div className="h-3 bg-gray-100 rounded w-1/3" />
               </div>
-            ) : copy ? (
-              <div className="space-y-3 text-sm">
-                <Field label="Ad name" value={name} onChange={setName} />
+            ) : copy && (
+              <div className="space-y-3">
+                <Field label="Ad name (internal)" value={name} onChange={setName} />
                 <Field label="Headline" value={title} onChange={setTitle} />
                 <Field label="Subtitle" value={subtitle} onChange={setSubtitle} />
                 <Field label="CTA button" value={ctaText} onChange={setCtaText} />
                 <Field label="Alt text" value={altText} onChange={setAltText} />
               </div>
-            ) : null}
+            )}
           </div>
 
           {/* Image generation */}
@@ -282,6 +414,12 @@ export default function NewAdPage() {
               )}
             </div>
 
+            {productImages.length > 0 && (
+              <p className="text-xs text-gray-400">
+                ✓ {productImages.filter(i => i.url).length}/{productImages.length} product photos uploaded — will be used to describe the product to Flux.
+              </p>
+            )}
+
             {!generatedImageUrl && !generatingImage && (
               <button
                 onClick={handleGenerateImage}
@@ -290,44 +428,48 @@ export default function NewAdPage() {
               >
                 <p className="text-3xl mb-2">🎨</p>
                 <p className="text-sm text-gray-500 group-hover:text-purple-700">Generate ad image with AI</p>
-                <p className="text-xs text-gray-300 mt-1">Uses Flux 2 Pro via AI Gateway (~30s)</p>
+                <p className="text-xs text-gray-300 mt-1">Flux 2 Pro via AI Gateway · ~30–45 seconds</p>
               </button>
             )}
 
             {generatingImage && (
               <div className="w-full aspect-[3/1] bg-gray-100 rounded-xl animate-pulse flex items-center justify-center">
-                <p className="text-sm text-gray-400">Generating image… this takes ~30 seconds</p>
+                <p className="text-sm text-gray-400">Generating… {productImages.length > 0 ? "using your product photos as reference" : ""}</p>
               </div>
             )}
 
             {generatedImageUrl && (
               <div className="relative w-full aspect-[3/1] rounded-xl overflow-hidden border border-gray-100">
                 <Image src={generatedImageUrl} alt="Generated ad" fill className="object-cover" unoptimized />
+                {(title || subtitle) && (
+                  <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-black/20 to-transparent flex flex-col justify-center px-6 pointer-events-none">
+                    {title && <p className="text-white font-bold text-xl drop-shadow">{title}</p>}
+                    {subtitle && <p className="text-white/90 text-sm mt-1 drop-shadow">{subtitle}</p>}
+                    {ctaText && <span className="mt-3 self-start bg-green-500 text-white text-sm font-semibold px-4 py-1.5 rounded-lg">{ctaText}</span>}
+                  </div>
+                )}
               </div>
             )}
           </div>
 
           {generatedImageUrl && copy && (
-            <button
-              onClick={() => setStep("details")}
-              className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold text-sm py-3 rounded-xl transition-colors"
-            >
+            <button onClick={() => setStep("details")}
+              className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-xl transition-colors">
               Continue to ad details →
             </button>
           )}
         </div>
       )}
 
-      {/* Step 4: Details (shared between AI and upload) */}
+      {/* Step 4: Details */}
       {step === "details" && (
         <div className="space-y-4">
-          {/* Preview */}
           {imageUrl && (
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-              <div className="relative w-full aspect-[3/1] rounded-xl overflow-hidden">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+              <div className="relative w-full aspect-[3/1]">
                 <Image src={imageUrl} alt="Ad preview" fill className="object-cover" unoptimized />
                 {(title || subtitle) && (
-                  <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-black/20 to-transparent flex flex-col justify-center px-6">
+                  <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-black/20 to-transparent flex flex-col justify-center px-6 pointer-events-none">
                     {title && <p className="text-white font-bold text-xl drop-shadow">{title}</p>}
                     {subtitle && <p className="text-white/90 text-sm mt-1 drop-shadow">{subtitle}</p>}
                     {ctaText && <span className="mt-3 self-start bg-green-500 text-white text-sm font-semibold px-4 py-1.5 rounded-lg">{ctaText}</span>}
@@ -354,14 +496,16 @@ export default function NewAdPage() {
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Click URL (destination) *</label>
                 <input type="url" value={clickUrl} onChange={(e) => setClickUrl(e.target.value)}
-                  placeholder="https://amazon.com.au/dp/..." className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400" />
-                <p className="text-xs text-gray-400 mt-1">UTM parameters will be added automatically.</p>
+                  placeholder="https://amazon.com.au/dp/..."
+                  className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400" />
+                <p className="text-xs text-gray-400 mt-1">UTM parameters will be added automatically for GA4 tracking.</p>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Slot</label>
-                  <select value={slotTarget} onChange={(e) => setSlotTarget(e.target.value)} className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400">
+                  <select value={slotTarget} onChange={(e) => setSlotTarget(e.target.value)}
+                    className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400">
                     {SLOTS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
                   </select>
                 </div>
@@ -394,11 +538,8 @@ export default function NewAdPage() {
 
             {error && <p className="text-sm text-red-600 bg-red-50 rounded-xl px-4 py-3">{error}</p>}
 
-            <button
-              onClick={handleSave}
-              disabled={saving || !imageUrl || !clickUrl || !name}
-              className="w-full bg-green-600 hover:bg-green-700 disabled:bg-green-300 text-white font-semibold py-3 rounded-xl transition-colors"
-            >
+            <button onClick={handleSave} disabled={saving || !imageUrl || !clickUrl || !name}
+              className="w-full bg-green-600 hover:bg-green-700 disabled:bg-green-300 text-white font-semibold py-3 rounded-xl transition-colors">
               {saving ? "Saving…" : "Save ad"}
             </button>
           </div>

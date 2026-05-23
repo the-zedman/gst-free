@@ -8,22 +8,18 @@ async function requireAdmin() {
   return sessionClaims?.metadata?.role === "admin";
 }
 
-// Step 1: Scrape Amazon URL and extract product info
 export async function POST(request: NextRequest) {
   if (!(await requireAdmin())) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   try {
-    const body = (await request.json()) as { action: string; amazonUrl?: string; productInfo?: ProductInfo; clickUrl?: string };
+    const body = (await request.json()) as {
+      action: string;
+      productInfo?: ProductInfo;
+      productImageUrls?: string[];
+    };
 
-    if (body.action === "scrape") {
-      return scrapeAmazon(body.amazonUrl ?? "");
-    }
-    if (body.action === "generate-copy") {
-      return generateCopy(body.productInfo!);
-    }
-    if (body.action === "generate-image") {
-      return generateAdImage(body.productInfo!);
-    }
+    if (body.action === "generate-copy") return generateCopy(body.productInfo!);
+    if (body.action === "generate-image") return generateAdImage(body.productInfo!, body.productImageUrls ?? []);
 
     return NextResponse.json({ error: "Unknown action" }, { status: 400 });
   } catch (e) {
@@ -31,83 +27,54 @@ export async function POST(request: NextRequest) {
   }
 }
 
-interface ProductInfo {
+export interface ProductInfo {
   title: string;
+  brand: string;
   price: string;
-  description: string;
-  features: string[];
-  imageUrl: string | null;
+  rrp: string;
+  discount: string;
   rating: string;
   reviewCount: string;
-}
-
-async function scrapeAmazon(url: string) {
-  if (!url.includes("amazon")) {
-    return NextResponse.json({ error: "Please provide an Amazon product URL" }, { status: 400 });
-  }
-
-  let html = "";
-  try {
-    const res = await fetch(url, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept-Language": "en-AU,en;q=0.9",
-        "Accept": "text/html,application/xhtml+xml",
-      },
-      signal: AbortSignal.timeout(10000),
-    });
-    html = await res.text();
-  } catch {
-    return NextResponse.json({ error: "Could not fetch Amazon page. Try again or enter product details manually." }, { status: 422 });
-  }
-
-  // Use Claude to extract structured product info from HTML
-  const { text } = await generateText({
-    model: gateway("anthropic/claude-haiku-4-5-20251001"),
-    messages: [{
-      role: "user",
-      content: `Extract product information from this Amazon page HTML. Return ONLY valid JSON, no markdown, no explanation.
-
-Extract: title, price (with currency), description (2-3 sentences), features (array of 3-5 key bullet points), imageUrl (main product image src), rating (e.g. "4.5"), reviewCount (e.g. "1,234").
-
-If any field cannot be found, use an empty string or empty array. The imageUrl should be a full https:// URL.
-
-HTML (truncated to 15000 chars):
-${html.slice(0, 15000)}`,
-    }],
-  });
-
-  let productInfo: ProductInfo;
-  try {
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    productInfo = JSON.parse(jsonMatch?.[0] ?? text);
-  } catch {
-    return NextResponse.json({ error: "Could not parse product information. The Amazon page may have been blocked." }, { status: 422 });
-  }
-
-  return NextResponse.json({ productInfo });
+  socialProof: string;
+  description: string;
+  features: string[];
+  specs: Record<string, string>;
+  imagePrompt?: string;
 }
 
 async function generateCopy(product: ProductInfo) {
+  const specsText = Object.entries(product.specs ?? {}).map(([k, v]) => `${k}: ${v}`).join(", ");
+  const socialLine = [
+    product.rating && `${product.rating}★ (${product.reviewCount} reviews)`,
+    product.socialProof,
+  ].filter(Boolean).join(" · ");
+  const priceLine = [
+    product.price && `Now ${product.price}`,
+    product.rrp && `was ${product.rrp}`,
+    product.discount && `(${product.discount} off)`,
+  ].filter(Boolean).join(" · ");
+
   const { text } = await generateText({
     model: gateway("anthropic/claude-haiku-4-5-20251001"),
     messages: [{
       role: "user",
-      content: `Create compelling ad copy for this product. Return ONLY valid JSON, no markdown.
+      content: `Create compelling ad copy for this product. Return ONLY valid JSON, no markdown, no code blocks.
 
 Product: ${product.title}
-Price: ${product.price}
+Brand: ${product.brand}
+${priceLine}
+${socialLine}
 Description: ${product.description}
-Features: ${product.features.join(", ")}
-Rating: ${product.rating} (${product.reviewCount} reviews)
+Key features: ${product.features.join(" | ")}
+${specsText ? `Specs: ${specsText}` : ""}
 
-Return JSON with:
-- adName: internal name for the ad (product name + month/year)
-- title: punchy headline (max 8 words, all caps or title case, very compelling)
-- subtitle: supporting line (max 15 words, benefit-focused)
-- ctaText: call to action button text (2-4 words, e.g. "Shop Now", "Get the Deal", "Buy on Amazon")
-- altText: image alt text for accessibility
-- imagePrompt: a detailed DALL-E/Flux prompt to generate a 1200x400 wide banner ad for this product. Style: professional Amazon-style product photography, clean white or very light background, product prominently displayed, photorealistic, high quality commercial photography. Include the product name and key visual elements.`,
+Return JSON with these fields:
+- adName: concise internal name (brand + product type + month/year, e.g. "Ninja Food Processor May 2026")
+- title: punchy headline (max 8 words, very compelling, benefit-led — e.g. "Master Every Meal in Seconds")
+- subtitle: supporting line (max 15 words, lead with the price saving or top feature, e.g. "52% off — the Ninja that chops, blends and slices in one")
+- ctaText: call to action (2-4 words, action-oriented, e.g. "Shop Now", "Grab the Deal", "Buy on Amazon")
+- altText: descriptive image alt text for accessibility
+- imagePrompt: a detailed Flux/DALL-E prompt for a wide 3:1 banner ad. Style: professional Amazon-style product photography, clean white or very light grey background, product prominently displayed centre-right, photorealistic, commercial studio lighting, high resolution. Include specific product details: brand name, colour, key physical features. The left third of the image should have a clean area for text overlay.`,
     }],
   });
 
@@ -122,13 +89,51 @@ Return JSON with:
   return NextResponse.json({ copy });
 }
 
-async function generateAdImage(product: ProductInfo & { imagePrompt?: string }) {
-  const prompt = product.imagePrompt ??
-    `Professional product advertisement banner for: ${product.title}. Amazon-style product photography, clean white background, product prominently centered, photorealistic commercial photography, high quality, 1200x400 wide banner format, professional studio lighting`;
+async function generateAdImage(product: ProductInfo, productImageUrls: string[]) {
+  let visualDescription = "";
+
+  // If product photos were uploaded, ask Claude to describe the product visually from them
+  if (productImageUrls.length > 0) {
+    const imageContent = productImageUrls.slice(0, 6).map((url) => ({
+      type: "image" as const,
+      image: new URL(url),
+    }));
+
+    const { text } = await generateText({
+      model: gateway("anthropic/claude-sonnet-4-6"),
+      messages: [{
+        role: "user",
+        content: [
+          ...imageContent,
+          {
+            type: "text",
+            text: `These are product photos of: ${product.title}
+
+Describe the product's visual appearance in detail for use in an AI image generation prompt. Focus on:
+- Exact shape and form factor
+- Colour(s) and finish (matte/gloss/metallic etc.)
+- Key visible components and features
+- Any text or branding visible on the product
+- Scale and proportions
+
+Write 3-4 sentences, be very specific about visual details. Do not describe the background or staging — only the product itself.`,
+          },
+        ],
+      }],
+    });
+    visualDescription = text.trim();
+  }
+
+  const basePrompt = product.imagePrompt ??
+    `Professional product advertisement banner for ${product.title} by ${product.brand}. Clean white background, product prominently displayed, photorealistic commercial photography, studio lighting.`;
+
+  const fullPrompt = visualDescription
+    ? `${basePrompt} Product appearance: ${visualDescription} The product should be positioned centre-right with the left third of the image kept clean for text overlay. Ultra-high quality commercial product photography, 3:1 wide banner format.`
+    : `${basePrompt} Product positioned centre-right, left third clean for text overlay. Ultra-high quality commercial product photography, 3:1 wide banner format.`;
 
   const { image } = await generateImage({
     model: gateway.image("bfl/flux-2-pro"),
-    prompt,
+    prompt: fullPrompt,
     aspectRatio: "3:1",
   });
 
