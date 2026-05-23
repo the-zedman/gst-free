@@ -99,31 +99,29 @@ export default async function HomePage({ searchParams }: HomePageProps) {
             priority
             sizes="100vw"
           />
-          {/* Gradient overlay — dark left for text, fades right to reveal food */}
-          <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/50 to-black/10" />
-          {/* Bottom vignette for depth */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+          {/* Very subtle vignette only — let the image pop */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />
 
-          {/* Content */}
-          <div className="relative z-10 w-full max-w-6xl mx-auto px-4 py-20">
-            <div className="max-w-2xl">
-              <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm text-white text-sm font-semibold px-3 py-1.5 rounded-full mb-6">
+          {/* Content — frosted glass card so image stays visible */}
+          <div className="relative z-10 w-full max-w-6xl mx-auto px-4 py-16">
+            <div className="max-w-xl bg-white/80 backdrop-blur-md rounded-3xl p-8 sm:p-10 shadow-2xl">
+              <div className="inline-flex items-center gap-2 bg-green-100 text-green-700 text-sm font-semibold px-3 py-1.5 rounded-full mb-5">
                 🇦🇺 For Australian Shoppers
               </div>
-              <h1 className="text-5xl sm:text-6xl font-bold text-white mb-4 leading-tight drop-shadow-lg">
+              <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-4 leading-tight">
                 Save money on every grocery shop
               </h1>
-              <p className="text-white/80 text-xl mb-8 max-w-xl leading-relaxed">
+              <p className="text-gray-600 text-lg mb-7 leading-relaxed">
                 Search 1,400+ ATO-confirmed GST-free foods and start keeping more
                 money in your pocket every week.
               </p>
               <Suspense>
                 <SearchBar defaultValue="" />
               </Suspense>
-              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-6 text-sm text-white/70">
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mt-5 text-sm text-gray-500">
                 {["ATO-confirmed", "1,400+ items", "Free to use", "Barcode scanner"].map((t) => (
                   <span key={t} className="flex items-center gap-1.5">
-                    <span className="text-green-400 font-bold">✓</span> {t}
+                    <span className="text-green-500 font-bold">✓</span> {t}
                   </span>
                 ))}
               </div>
