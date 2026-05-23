@@ -71,10 +71,10 @@ ${specsText ? `Specs: ${specsText}` : ""}
 Return JSON with these fields:
 - adName: concise internal name (brand + product type + month/year, e.g. "Ninja Food Processor May 2026")
 - title: punchy headline (max 8 words, very compelling, benefit-led — e.g. "Master Every Meal in Seconds")
-- subtitle: supporting line (max 15 words, lead with the price saving or top feature, e.g. "52% off — the Ninja that chops, blends and slices in one")
+- subtitle: supporting line (max 18 words). MUST include the price/discount if available (e.g. "52% off"), the star rating if available (e.g. "4.7★"), and any social proof (e.g. "Amazon's Choice"). Weave these together naturally, e.g. "52% off · 4.7★ Amazon's Choice — chops, blends and slices in one"
 - ctaText: call to action (2-4 words, action-oriented, e.g. "Shop Now", "Grab the Deal", "Buy on Amazon")
 - altText: descriptive image alt text for accessibility
-- imagePrompt: a detailed Flux/DALL-E prompt for a wide 3:1 banner ad. Style: professional Amazon-style product photography, clean white or very light grey background, product prominently displayed centre-right, photorealistic, commercial studio lighting, high resolution. Include specific product details: brand name, colour, key physical features. The left third of the image should have a clean area for text overlay.`,
+- imagePrompt: a detailed Flux/DALL-E prompt for a wide 3:1 banner ad. Style: professional Amazon-style product photography, clean white or very light grey background. The ENTIRE product must be fully visible with clear padding around all edges — do not crop any part of the product. Product centred in the right 60% of the frame, photorealistic, commercial studio lighting, high resolution. The left 40% of the image should be a clean, uncluttered area for text overlay.`,
     }],
   });
 
@@ -128,8 +128,8 @@ Write 3-4 sentences, be very specific about visual details. Do not describe the 
     `Professional product advertisement banner for ${product.title} by ${product.brand}. Clean white background, product prominently displayed, photorealistic commercial photography, studio lighting.`;
 
   const fullPrompt = visualDescription
-    ? `${basePrompt} Product appearance: ${visualDescription} The product should be positioned centre-right with the left third of the image kept clean for text overlay. Ultra-high quality commercial product photography, 3:1 wide banner format.`
-    : `${basePrompt} Product positioned centre-right, left third clean for text overlay. Ultra-high quality commercial product photography, 3:1 wide banner format.`;
+    ? `${basePrompt} Product appearance: ${visualDescription} The ENTIRE product must be fully visible with clear padding on all sides — do not crop any part of the product. Position the complete product in the right 60% of the frame. The left 40% should be a clean, uncluttered background for text overlay. Ultra-high quality commercial product photography, 3:1 wide banner format.`
+    : `${basePrompt} The ENTIRE product must be fully visible with clear padding on all sides — do not crop any part of the product. Product positioned in the right 60% of frame, left 40% clean for text overlay. Ultra-high quality commercial product photography, 3:1 wide banner format.`;
 
   const { image } = await generateImage({
     model: gateway.image("bfl/flux-2-pro"),
