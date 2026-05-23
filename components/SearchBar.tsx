@@ -146,30 +146,44 @@ export default function SearchBar({ defaultValue = "" }: SearchBarProps) {
   return (
     <>
       <form onSubmit={handleSubmit} className="relative w-full max-w-2xl mx-auto">
-        <div className="relative flex items-center">
-          <span className="absolute left-4 text-gray-400 pointer-events-none text-lg select-none">
-            {isBarcode ? "▌▌▌" : "🔍"}
-          </span>
-          <input
-            type="search"
-            value={value}
-            onChange={handleChange}
-            placeholder="Search foods or enter a barcode"
-            autoComplete="off"
-            inputMode="text"
-            className={`w-full pl-12 py-3.5 text-base rounded-2xl border-2 focus:outline-none shadow-sm bg-white placeholder:text-gray-400 transition-colors font-${isBarcode ? "mono" : "sans"} ${
-              isBarcode
-                ? "border-blue-300 focus:border-blue-500"
-                : "border-green-200 focus:border-green-500"
-            } ${value ? "pr-24 sm:pr-12" : "pr-16 sm:pr-12"}`}
-          />
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1 flex items-center">
+            <span className="absolute left-4 text-gray-400 pointer-events-none text-lg select-none">
+              {isBarcode ? "▌▌▌" : "🔍"}
+            </span>
+            <input
+              type="search"
+              value={value}
+              onChange={handleChange}
+              placeholder="Search foods or enter a barcode"
+              autoComplete="off"
+              inputMode="text"
+              className={`w-full pl-12 py-3.5 text-base rounded-2xl border-2 focus:outline-none shadow-sm bg-white placeholder:text-gray-400 transition-colors font-${isBarcode ? "mono" : "sans"} ${
+                isBarcode
+                  ? "border-blue-300 focus:border-blue-500"
+                  : "border-green-200 focus:border-green-500"
+              } ${value ? "pr-10" : "pr-4"}`}
+            />
 
-          {/* Scan button — mobile only, always visible */}
+            {/* Clear button */}
+            {value && (
+              <button
+                type="button"
+                onClick={handleClear}
+                className="absolute right-3 text-gray-400 hover:text-gray-600 text-xl leading-none"
+                aria-label="Clear search"
+              >
+                ×
+              </button>
+            )}
+          </div>
+
+          {/* Scan button — mobile only, outside input so placeholder has full width */}
           <button
             type="button"
             onClick={openScanner}
             aria-label="Scan barcode"
-            className="sm:hidden absolute right-2 flex items-center justify-center w-12 h-12 rounded-xl bg-green-600 hover:bg-green-700 text-white transition-colors shadow-sm"
+            className="sm:hidden shrink-0 flex items-center justify-center w-14 h-14 rounded-2xl bg-green-600 hover:bg-green-700 text-white transition-colors shadow-sm"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/>
@@ -178,18 +192,6 @@ export default function SearchBar({ defaultValue = "" }: SearchBarProps) {
               <line x1="16" y1="12" x2="16" y2="12.01"/>
             </svg>
           </button>
-
-          {/* Clear button — sits left of scan button on mobile, right edge on desktop */}
-          {value && (
-            <button
-              type="button"
-              onClick={handleClear}
-              className="absolute right-16 sm:right-4 text-gray-400 hover:text-gray-600 text-xl leading-none"
-              aria-label="Clear search"
-            >
-              ×
-            </button>
-          )}
         </div>
         {isBarcode && (
           <p className="text-xs text-center text-blue-500 mt-1.5 font-medium">
