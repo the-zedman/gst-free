@@ -160,6 +160,25 @@ export async function getTopReferrers(limit = 8): Promise<TopReferrer[]> {
   `) as TopReferrer[];
 }
 
+export interface SearchRow {
+  path: string;
+  device: string;
+  country: string | null;
+  created_at: string;
+}
+
+export async function getRecentSearches(limit = 300): Promise<SearchRow[]> {
+  await ensureTable();
+  return (await sql`
+    SELECT path, device, country, created_at
+    FROM page_views
+    WHERE (path LIKE '/?q=%' OR path LIKE '/?barcode=%')
+      AND device != 'bot'
+    ORDER BY created_at DESC
+    LIMIT ${limit}
+  `) as SearchRow[];
+}
+
 export async function getDeviceBreakdown(): Promise<DeviceRow[]> {
   await ensureTable();
   return (await sql`
