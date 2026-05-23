@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import Script from "next/script";
+import { Suspense } from "react";
 import Header from "@/components/Header";
+import PageViewTracker from "@/components/PageViewTracker";
 import "./globals.css";
 
 const geist = Geist({
@@ -61,6 +63,9 @@ export default function RootLayout({
           <link rel="manifest" href="/site.webmanifest?v=2" />
         </head>
         <body className="min-h-full flex flex-col">
+          <Suspense>
+            <PageViewTracker />
+          </Suspense>
           <Header />
           {children}
         </body>
