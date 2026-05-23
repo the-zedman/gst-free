@@ -12,9 +12,11 @@
     "gen-image": "tsx scripts/generate-image.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.98.0",
     "@clerk/nextjs": "^7.3.7",
     "@neondatabase/serverless": "^1.1.0",
     "@types/nodemailer": "^8.0.0",
+    "@vercel/blob": "^2.4.0",
     "@zxing/browser": "^0.2.0",
     "@zxing/library": "^0.22.0",
     "ai": "^6.0.188",

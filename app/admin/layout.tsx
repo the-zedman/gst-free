@@ -37,6 +37,12 @@ export default async function AdminLayout({
           >
             Searches
           </Link>
+          <Link
+            href="/admin/advertising"
+            className="text-gray-300 hover:text-white transition-colors"
+          >
+            Advertising
+          </Link>
           <SignOutButton>
             <button className="text-gray-400 hover:text-white transition-colors">
               Sign out
