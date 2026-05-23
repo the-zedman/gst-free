@@ -93,38 +93,47 @@ export function inferGstFromTags(tags: string[]): GstResult {
   };
 }
 
-// Strip sizes, punctuation and noise words; search ATO items table for a match
+// Words that appear in product names but never in ATO food category names
+const NAME_STOP_WORDS = new Set([
+  "original", "classic", "natural", "pure", "real", "lite", "light",
+  "reduced", "extra", "super", "premium", "select", "special", "regular",
+  "plain", "simple", "family", "value", "finest", "organic", "gluten",
+  "australian", "australia", "picnic", "party", "bbq", "grill",
+  "bag", "box", "tin", "bottle", "jar", "pouch", "pack", "tub",
+  "new", "old", "mini", "large", "small", "sliced", "diced", "whole",
+]);
+
+// Try each word from the product name individually against the ATO items table
 async function searchAtoByName(productName: string): Promise<GstResult | null> {
-  const keywords = productName
-    .replace(/\d+(\.\d+)?\s*(g|kg|ml|l|cl|mg|oz|lb|pack|pk|x)\b/gi, "") // sizes
+  const words = productName
+    .replace(/\d+(\.\d+)?\s*(g|kg|ml|l|cl|mg|oz|lb|pack|pk|x)\b/gi, "")
     .replace(/[^a-z\s]/gi, " ")
+    .toLowerCase()
     .split(/\s+/)
-    .filter(w => w.length > 2)
-    .join(" ")
-    .trim();
+    .filter(w => w.length > 2 && !NAME_STOP_WORDS.has(w))
+    .sort((a, b) => b.length - a.length); // longer words first — more specific
 
-  if (!keywords) return null;
+  for (const word of words) {
+    try {
+      const rows = await sql`
+        SELECT name, gst_status
+        FROM items
+        WHERE name ILIKE ${"%" + word + "%"}
+        ORDER BY length(name) ASC
+        LIMIT 1
+      ` as Array<{ name: string; gst_status: string }>;
 
-  try {
-    const rows = await sql`
-      SELECT name, gst_status
-      FROM items
-      WHERE to_tsvector('english', name) @@ plainto_tsquery('english', ${keywords})
-      ORDER BY ts_rank(to_tsvector('english', name), plainto_tsquery('english', ${keywords})) DESC
-      LIMIT 1
-    ` as Array<{ name: string; gst_status: string }>;
-
-    if (!rows.length) return null;
-
-    const { name, gst_status } = rows[0];
-    return {
-      gst_status: gst_status as GstResult["gst_status"],
-      gst_confidence: "medium",
-      gst_notes: `Matched ATO item: "${name}" — verify this applies to your product`,
-    };
-  } catch {
-    return null;
+      if (rows.length) {
+        const { name, gst_status } = rows[0];
+        return {
+          gst_status: gst_status as GstResult["gst_status"],
+          gst_confidence: "medium",
+          gst_notes: `Matched ATO item: "${name}" — verify this applies to your product`,
+        };
+      }
+    } catch { /* try next word */ }
   }
+  return null;
 }
 
 async function ensureTable(): Promise<void> {
