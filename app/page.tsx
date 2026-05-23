@@ -89,41 +89,44 @@ export default async function HomePage({ searchParams }: HomePageProps) {
       <div className="min-h-screen flex flex-col">
 
         {/* Hero */}
-        <section className="bg-gradient-to-br from-green-50 via-white to-green-50 px-4 pt-10 pb-10">
-          <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-            {/* Text + search */}
-            <div className="text-center lg:text-left">
-              <div className="inline-flex items-center gap-2 bg-green-100 text-green-700 text-sm font-semibold px-3 py-1.5 rounded-full mb-5">
+        <section className="relative flex items-center min-h-[580px] sm:min-h-[640px]">
+          {/* Full-width background image */}
+          <Image
+            src="/images/hero-groceries.jpg"
+            alt="Fresh Australian groceries"
+            fill
+            className="object-cover"
+            priority
+            sizes="100vw"
+          />
+          {/* Gradient overlay — dark left for text, fades right to reveal food */}
+          <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/50 to-black/10" />
+          {/* Bottom vignette for depth */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+
+          {/* Content */}
+          <div className="relative z-10 w-full max-w-6xl mx-auto px-4 py-20">
+            <div className="max-w-2xl">
+              <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm text-white text-sm font-semibold px-3 py-1.5 rounded-full mb-6">
                 🇦🇺 For Australian Shoppers
               </div>
-              <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-4 leading-tight">
+              <h1 className="text-5xl sm:text-6xl font-bold text-white mb-4 leading-tight drop-shadow-lg">
                 Save money on every grocery shop
               </h1>
-              <p className="text-gray-500 text-lg mb-7 max-w-xl lg:mx-0 mx-auto">
+              <p className="text-white/80 text-xl mb-8 max-w-xl leading-relaxed">
                 Search 1,400+ ATO-confirmed GST-free foods and start keeping more
                 money in your pocket every week.
               </p>
               <Suspense>
                 <SearchBar defaultValue="" />
               </Suspense>
-              <div className="flex flex-wrap items-center justify-center lg:justify-start gap-x-6 gap-y-2 mt-6 text-sm text-gray-500">
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-6 text-sm text-white/70">
                 {["ATO-confirmed", "1,400+ items", "Free to use", "Barcode scanner"].map((t) => (
                   <span key={t} className="flex items-center gap-1.5">
-                    <span className="text-green-500 font-bold">✓</span> {t}
+                    <span className="text-green-400 font-bold">✓</span> {t}
                   </span>
                 ))}
               </div>
-            </div>
-            {/* Hero image */}
-            <div className="relative rounded-3xl overflow-hidden shadow-2xl aspect-[4/3] hidden lg:block">
-              <Image
-                src="/images/hero-groceries.jpg"
-                alt="Fresh Australian groceries"
-                fill
-                className="object-cover"
-                priority
-                sizes="50vw"
-              />
             </div>
           </div>
         </section>
