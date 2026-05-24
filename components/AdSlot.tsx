@@ -1,17 +1,19 @@
 import { getActiveAds, pickAdsForSlots } from "@/lib/ads";
+import type { Ad } from "@/lib/ads";
 import AdDisplay from "./AdDisplay";
 
 const SLOTS = ["ad-hero", "ad-mid", "ad-prefooter"];
 
-let cachedAds: Awaited<ReturnType<typeof getActiveAds>> | null = null;
+let cachedPicks: Record<string, Ad | null> | null = null;
 let cacheAt = 0;
 
-async function getAds() {
-  if (!cachedAds || Date.now() - cacheAt > 60_000) {
-    cachedAds = await getActiveAds().catch(() => []);
+async function getPicks() {
+  if (!cachedPicks || Date.now() - cacheAt > 60_000) {
+    const ads = await getActiveAds().catch(() => []);
+    cachedPicks = pickAdsForSlots(ads, SLOTS);
     cacheAt = Date.now();
   }
-  return cachedAds;
+  return cachedPicks;
 }
 
 interface AdSlotProps {
@@ -20,8 +22,7 @@ interface AdSlotProps {
 }
 
 export default async function AdSlot({ id, className }: AdSlotProps) {
-  const ads = await getAds();
-  const picks = pickAdsForSlots(ads, SLOTS);
+  const picks = await getPicks();
   const ad = picks[id] ?? null;
 
   if (!ad) {
