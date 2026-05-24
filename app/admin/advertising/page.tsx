@@ -9,6 +9,19 @@ function ctr(impressions: number, clicks: number) {
   return ((clicks / impressions) * 100).toFixed(1) + "%";
 }
 
+function isLive(ad: { active: boolean; starts_at: string | null; ends_at: string | null }) {
+  if (!ad.active) return false;
+  const now = new Date();
+  if (ad.starts_at && new Date(ad.starts_at) > now) return false;
+  if (ad.ends_at && new Date(ad.ends_at) < now) return false;
+  return true;
+}
+
+function fmtDate(iso: string | null) {
+  if (!iso) return null;
+  return new Date(iso).toLocaleDateString("en-AU", { timeZone: "Australia/Sydney", day: "numeric", month: "short", year: "2-digit" });
+}
+
 export default async function AdvertisingPage() {
   const ads = await getAllAds();
 
@@ -72,25 +85,34 @@ export default async function AdvertisingPage() {
 
                 {/* Info */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-0.5">
+                  <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                     <Link href={`/admin/advertising/${ad.id}`} className="text-sm font-semibold text-gray-900 hover:text-green-700 truncate transition-colors">
                       {ad.name}
                     </Link>
                     <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 ${ad.type === "ai" ? "bg-purple-100 text-purple-700" : "bg-blue-100 text-blue-700"}`}>
                       {ad.type === "ai" ? "AI" : "Upload"}
                     </span>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full shrink-0 ${ad.slot_target === "any" ? "bg-gray-100 text-gray-500" : "bg-amber-100 text-amber-700"}`}>
-                      {ad.slot_target === "any" ? "Any slot" : ad.slot_target}
-                    </span>
+                    {isLive(ad) && (
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0 bg-green-500 text-white tracking-wide">
+                        LIVE
+                      </span>
+                    )}
                   </div>
                   <p className="text-xs text-gray-400 truncate">{ad.click_url}</p>
+                  {/* Meta row */}
+                  <div className="flex items-center gap-3 mt-1 text-[11px] text-gray-400 flex-wrap">
+                    <span><span className="text-gray-500 font-medium">Slot:</span> {ad.slot_target === "any" ? "Any" : ad.slot_target}</span>
+                    <span><span className="text-gray-500 font-medium">Weight:</span> {ad.weight}×</span>
+                    <span><span className="text-gray-500 font-medium">Created:</span> {fmtDate(ad.created_at)}</span>
+                    {ad.starts_at && <span><span className="text-gray-500 font-medium">Starts:</span> {fmtDate(ad.starts_at)}</span>}
+                    {ad.ends_at && <span><span className="text-gray-500 font-medium">Ends:</span> {fmtDate(ad.ends_at)}</span>}
+                  </div>
                   {/* Stats row */}
-                  <div className="flex items-center gap-4 mt-1.5 text-xs text-gray-400">
+                  <div className="flex items-center gap-4 mt-1 text-xs text-gray-400">
                     <span title="Impressions">👁 {ad.impressions.toLocaleString()}</span>
                     <span title="Unique impressions">👤 {ad.unique_impressions.toLocaleString()}</span>
                     <span title="Clicks">🖱 {ad.clicks.toLocaleString()}</span>
                     <span title="CTR" className={ad.clicks > 0 ? "text-green-600 font-semibold" : ""}>CTR {ctr(ad.impressions, ad.clicks)}</span>
-                    <span title="Weight">⚖️ {ad.weight}×</span>
                   </div>
                 </div>
 
