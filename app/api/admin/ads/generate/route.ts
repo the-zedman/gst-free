@@ -107,6 +107,19 @@ Return JSON with these fields:
     product.discount && `**${product.discount} off**`,
   ].filter(Boolean).join(" ");
 
+  const ratingLine = (() => {
+    if (!product.rating) return "";
+    const num = parseFloat(product.rating);
+    if (isNaN(num)) return `**${product.rating}★** (${product.reviewCount} reviews)`;
+    const full = Math.floor(num);
+    const frac = num - full;
+    const partialDesc = frac < 0.1 ? "" : frac < 0.35 ? "¼" : frac < 0.65 ? "½" : frac < 0.9 ? "¾" : "";
+    const countFull = frac >= 0.9 ? full + 1 : full;
+    const countEmpty = 5 - countFull - (partialDesc ? 1 : 0);
+    const stars = "★".repeat(countFull) + (partialDesc ? `[${partialDesc}-filled ★]` : "") + "☆".repeat(Math.max(0, countEmpty));
+    return `render as gold star icons: ${stars} — ${num} (${product.reviewCount} reviews)`;
+  })();
+
   const copyBlock = position === "right"
     ? `- Left 45%: ad copy in this exact order from top to bottom — headline, product name, price, rating, social proof, feature line, CTA button. Clean readable hierarchy with appropriate spacing between each element.
 - Right 55%: the full product, completely visible with no cropping at any edge, floating naturally with a subtle drop shadow beneath it.`
@@ -123,7 +136,7 @@ ${product.title} by ${product.brand}. Reproduce the exact product from the scree
 **Ad copy to include (design these into the banner):**
 - Headline: **${headline}**
 - Product name: **${productShortName}** (bold, slightly smaller than headline)
-- Price: ${priceLine}${product.rating ? `\n- Rating: **${product.rating}★** (${product.reviewCount} reviews)` : ""}${product.socialProof ? `\n- Social proof: **${product.socialProof}**` : ""}
+- Price: ${priceLine}${ratingLine ? `\n- Rating: ${ratingLine}` : ""}${product.socialProof ? `\n- Social proof: **${product.socialProof}**` : ""}
 - Key feature line: *${featureLine}*
 - CTA button: **${ctaText}** (green button, white text)
 
@@ -137,7 +150,8 @@ ${backgroundSuggestion} The background must work cohesively behind both the text
 - Headline: large, bold, white
 - Product name: bold, white, slightly smaller than headline
 - Price: bold white for current price, struck-through grey for RRP, bright green or yellow for the discount percentage
-- Rating and social proof: smaller, white or light grey
+- Rating stars: rendered as actual gold/yellow star icons — full stars fully filled, the partial star (e.g. ¾) shown as a partially filled star icon to visually represent the exact decimal. Followed by the numeric rating and review count in small white/light grey text
+- Social proof: smaller, white or light grey
 - Feature line: italic, white/light
 - CTA button: solid green (#22c55e), white bold text, rounded corners
 
