@@ -3,15 +3,10 @@
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import type { ProductInfo } from "@/app/api/admin/ads/generate/route";
+import type { ProductInfo, GeneratedCopy } from "@/app/api/admin/ads/generate/route";
 
 type AdType = "ai" | "upload";
 type Step = "type" | "source" | "copy" | "details";
-
-interface GeneratedCopy {
-  adName: string; title: string; subtitle: string;
-  ctaText: string; altText: string; imagePrompt: string;
-}
 
 const SLOTS = [
   { value: "any", label: "Any slot (cycling)" },
@@ -52,6 +47,9 @@ export default function NewAdPage() {
   const [name, setName] = useState("");
   const [title, setTitle] = useState("");
   const [subtitle, setSubtitle] = useState("");
+  const [priceText, setPriceText] = useState("");
+  const [ratingText, setRatingText] = useState("");
+  const [socialProofText, setSocialProofText] = useState("");
   const [ctaText, setCtaText] = useState("Shop Now");
   const [altText, setAltText] = useState("");
   const [clickUrl, setClickUrl] = useState("");
@@ -152,6 +150,9 @@ export default function NewAdPage() {
       setName(data.copy.adName);
       setTitle(data.copy.title);
       setSubtitle(data.copy.subtitle);
+      setPriceText(data.copy.price ?? "");
+      setRatingText(data.copy.rating ?? "");
+      setSocialProofText(data.copy.socialProof ?? "");
       setCtaText(data.copy.ctaText);
       setAltText(data.copy.altText);
     }
@@ -170,6 +171,7 @@ export default function NewAdPage() {
         action: "generate-image",
         productInfo: { ...productInfo, imagePrompt: copy.imagePrompt },
         productImageUrls,
+        copy,
       }),
     });
     const data = await res.json() as { imageUrl?: string; error?: string };
@@ -202,8 +204,9 @@ export default function NewAdPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         name, type: adType, image_url: imageUrl, click_url: clickUrl,
-        title: title || null, subtitle: subtitle || null, cta_text: ctaText,
-        alt_text: altText || null, slot_target: slotTarget, weight,
+        title: title || null, subtitle: subtitle || null,
+        price_text: priceText || null, rating_text: ratingText || null, social_proof: socialProofText || null,
+        cta_text: ctaText, alt_text: altText || null, slot_target: slotTarget, weight,
         active: true, sponsored_label: sponsoredLabel,
         starts_at: startsAt || null, ends_at: endsAt || null,
       }),
@@ -396,7 +399,10 @@ export default function NewAdPage() {
               <div className="space-y-3">
                 <Field label="Ad name (internal)" value={name} onChange={setName} />
                 <Field label="Headline" value={title} onChange={setTitle} />
-                <Field label="Subtitle" value={subtitle} onChange={setSubtitle} />
+                <Field label="Subtitle (feature copy)" value={subtitle} onChange={setSubtitle} />
+                <Field label="Price display" value={priceText} onChange={setPriceText} />
+                <Field label="Rating" value={ratingText} onChange={setRatingText} />
+                <Field label="Social proof" value={socialProofText} onChange={setSocialProofText} />
                 <Field label="CTA button" value={ctaText} onChange={setCtaText} />
                 <Field label="Alt text" value={altText} onChange={setAltText} />
               </div>
@@ -441,11 +447,13 @@ export default function NewAdPage() {
             {generatedImageUrl && (
               <div className="relative w-full aspect-[3/1] rounded-xl overflow-hidden border border-gray-100">
                 <Image src={generatedImageUrl} alt="Generated ad" fill className="object-cover" unoptimized />
-                {(title || subtitle) && (
-                  <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-black/20 to-transparent flex flex-col justify-center px-6 pointer-events-none">
-                    {title && <p className="text-white font-bold text-xl drop-shadow">{title}</p>}
-                    {subtitle && <p className="text-white/90 text-sm mt-1 drop-shadow">{subtitle}</p>}
-                    {ctaText && <span className="mt-3 self-start bg-green-500 text-white text-sm font-semibold px-4 py-1.5 rounded-lg">{ctaText}</span>}
+                {(title || priceText || ratingText || socialProofText) && (
+                  <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/30 to-transparent flex flex-col justify-center px-5 gap-0.5 pointer-events-none">
+                    {title && <p className="text-white font-bold text-base sm:text-xl leading-tight drop-shadow">{title}</p>}
+                    {priceText && <p className="text-yellow-300 font-semibold text-sm leading-tight drop-shadow">{priceText}</p>}
+                    {(ratingText || socialProofText) && <p className="text-white/80 text-xs leading-tight drop-shadow">{[ratingText, socialProofText].filter(Boolean).join(" · ")}</p>}
+                    {!priceText && !ratingText && !socialProofText && subtitle && <p className="text-white/90 text-sm leading-tight drop-shadow">{subtitle}</p>}
+                    {ctaText && <span className="mt-2 self-start bg-green-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg">{ctaText}</span>}
                   </div>
                 )}
               </div>
@@ -468,11 +476,13 @@ export default function NewAdPage() {
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
               <div className="relative w-full aspect-[3/1]">
                 <Image src={imageUrl} alt="Ad preview" fill className="object-cover" unoptimized />
-                {(title || subtitle) && (
-                  <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-black/20 to-transparent flex flex-col justify-center px-6 pointer-events-none">
-                    {title && <p className="text-white font-bold text-xl drop-shadow">{title}</p>}
-                    {subtitle && <p className="text-white/90 text-sm mt-1 drop-shadow">{subtitle}</p>}
-                    {ctaText && <span className="mt-3 self-start bg-green-500 text-white text-sm font-semibold px-4 py-1.5 rounded-lg">{ctaText}</span>}
+                {(title || priceText || ratingText || socialProofText) && (
+                  <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/30 to-transparent flex flex-col justify-center px-5 gap-0.5 pointer-events-none">
+                    {title && <p className="text-white font-bold text-base sm:text-xl leading-tight drop-shadow">{title}</p>}
+                    {priceText && <p className="text-yellow-300 font-semibold text-sm leading-tight drop-shadow">{priceText}</p>}
+                    {(ratingText || socialProofText) && <p className="text-white/80 text-xs leading-tight drop-shadow">{[ratingText, socialProofText].filter(Boolean).join(" · ")}</p>}
+                    {!priceText && !ratingText && !socialProofText && subtitle && <p className="text-white/90 text-sm leading-tight drop-shadow">{subtitle}</p>}
+                    {ctaText && <span className="mt-2 self-start bg-green-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg">{ctaText}</span>}
                   </div>
                 )}
               </div>

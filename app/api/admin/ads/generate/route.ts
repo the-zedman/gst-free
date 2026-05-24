@@ -8,6 +8,18 @@ async function requireAdmin() {
   return sessionClaims?.metadata?.role === "admin";
 }
 
+export interface GeneratedCopy {
+  adName: string;
+  title: string;
+  subtitle: string;
+  price: string;
+  rating: string;
+  socialProof: string;
+  ctaText: string;
+  altText: string;
+  imagePrompt: string;
+}
+
 export async function POST(request: NextRequest) {
   if (!(await requireAdmin())) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
@@ -16,10 +28,11 @@ export async function POST(request: NextRequest) {
       action: string;
       productInfo?: ProductInfo;
       productImageUrls?: string[];
+      copy?: GeneratedCopy;
     };
 
     if (body.action === "generate-copy") return generateCopy(body.productInfo!);
-    if (body.action === "generate-image") return generateAdImage(body.productInfo!, body.productImageUrls ?? []);
+    if (body.action === "generate-image") return generateAdImage(body.productInfo!, body.productImageUrls ?? [], body.copy);
 
     return NextResponse.json({ error: "Unknown action" }, { status: 400 });
   } catch (e) {
@@ -44,14 +57,14 @@ export interface ProductInfo {
 
 async function generateCopy(product: ProductInfo) {
   const specsText = Object.entries(product.specs ?? {}).map(([k, v]) => `${k}: ${v}`).join(", ");
-  const socialLine = [
-    product.rating && `${product.rating}★ (${product.reviewCount} reviews)`,
-    product.socialProof,
-  ].filter(Boolean).join(" · ");
   const priceLine = [
     product.price && `Now ${product.price}`,
     product.rrp && `was ${product.rrp}`,
     product.discount && `(${product.discount} off)`,
+  ].filter(Boolean).join(" · ");
+  const socialLine = [
+    product.rating && `${product.rating}★ (${product.reviewCount} reviews)`,
+    product.socialProof,
   ].filter(Boolean).join(" · ");
 
   const { text } = await generateText({
@@ -71,10 +84,13 @@ ${specsText ? `Specs: ${specsText}` : ""}
 Return JSON with these fields:
 - adName: concise internal name (brand + product type + month/year, e.g. "Ninja Food Processor May 2026")
 - title: punchy headline (max 8 words, very compelling, benefit-led — e.g. "Master Every Meal in Seconds")
-- subtitle: supporting line (max 18 words). MUST include the price/discount if available (e.g. "52% off"), the star rating if available (e.g. "4.7★"), and any social proof (e.g. "Amazon's Choice"). Weave these together naturally, e.g. "52% off · 4.7★ Amazon's Choice — chops, blends and slices in one"
+- subtitle: feature-focused supporting line (max 12 words, highlight the top benefit or feature — do NOT include price, rating or social proof here, those are shown separately)
+- price: formatted price display string combining all price info (e.g. "$119.00 · was $249.99 · 52% off"), or empty string if no price data available
+- rating: formatted rating display (e.g. "4.7★ (418 reviews)"), or empty string if no rating data available
+- socialProof: social proof text exactly as it appears (e.g. "Amazon's Choice · 700+ bought in past month"), or empty string if none
 - ctaText: call to action (2-4 words, action-oriented, e.g. "Shop Now", "Grab the Deal", "Buy on Amazon")
 - altText: descriptive image alt text for accessibility
-- imagePrompt: a detailed Flux/DALL-E prompt for a wide 3:1 banner ad. Style: professional Amazon-style product photography, clean white or very light grey background. The ENTIRE product must be fully visible with clear padding around all edges — do not crop any part of the product. Product centred in the right 60% of the frame, photorealistic, commercial studio lighting, high resolution. The left 40% of the image should be a clean, uncluttered area for text overlay.`,
+- imagePrompt: a concise description of what this product looks like physically (shape, colour, key components) for use in image generation — 2-3 sentences`,
     }],
   });
 
@@ -89,7 +105,7 @@ Return JSON with these fields:
   return NextResponse.json({ copy });
 }
 
-async function generateAdImage(product: ProductInfo, productImageUrls: string[]) {
+async function generateAdImage(product: ProductInfo, productImageUrls: string[], copy?: GeneratedCopy) {
   let visualDescription = "";
 
   // If product photos were uploaded, ask Claude to describe the product visually from them
@@ -124,16 +140,39 @@ Write 3-4 sentences, be very specific about visual details. Do not describe the 
     visualDescription = text.trim();
   }
 
-  const basePrompt = product.imagePrompt ??
-    `Professional product advertisement banner for ${product.title} by ${product.brand}. Clean white background, product prominently displayed, photorealistic commercial photography, studio lighting.`;
+  // Use Claude as creative director to write the optimal Flux prompt
+  const priceLine = [
+    product.price && `${product.price}`,
+    product.rrp && `was ${product.rrp}`,
+    product.discount && `${product.discount} off`,
+  ].filter(Boolean).join(", ");
 
-  const fullPrompt = visualDescription
-    ? `${basePrompt} Product appearance: ${visualDescription} The ENTIRE product must be fully visible with clear padding on all sides — do not crop any part of the product. Position the complete product in the right 60% of the frame. The left 40% should be a clean, uncluttered background for text overlay. Ultra-high quality commercial product photography, 3:1 wide banner format.`
-    : `${basePrompt} The ENTIRE product must be fully visible with clear padding on all sides — do not crop any part of the product. Product positioned in the right 60% of frame, left 40% clean for text overlay. Ultra-high quality commercial product photography, 3:1 wide banner format.`;
+  const { text: fluxPrompt } = await generateText({
+    model: gateway("anthropic/claude-sonnet-4-6"),
+    messages: [{
+      role: "user",
+      content: `You are a professional advertising creative director. Write the single best Flux image generation prompt for a 3:1 wide banner ad for this product.
+
+Product: ${product.title} by ${product.brand}
+${priceLine ? `Price: ${priceLine}` : ""}
+${visualDescription ? `Visual appearance: ${visualDescription}` : copy?.imagePrompt ? `Product description: ${copy.imagePrompt}` : ""}
+${copy ? `Ad headline: "${copy.title}"` : ""}
+${copy?.subtitle ? `Ad subtitle: "${copy.subtitle}"` : ""}
+
+Critical composition requirements:
+1. The ENTIRE product must be completely visible — generous padding on ALL sides, absolutely NO cropping at any edge of the frame
+2. Product positioned in the right 55% of the image, fully contained within the frame
+3. Left 45% should be a clean, minimal, uncluttered area for text overlay (gradient or very plain background)
+4. Professional commercial photography: clean white or very light grey background, photorealistic, studio lighting, high resolution
+5. Consider the product's shape: if it is tall (blender, stand mixer, bottle), ensure generous top and bottom headroom; if wide (laptop, monitor), ensure extra side padding
+
+Write ONLY the Flux prompt text, nothing else. No explanation, no preamble, no quotes.`,
+    }],
+  });
 
   const { image } = await generateImage({
     model: gateway.image("bfl/flux-2-pro"),
-    prompt: fullPrompt,
+    prompt: fluxPrompt.trim(),
     aspectRatio: "3:1",
   });
 

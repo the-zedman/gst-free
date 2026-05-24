@@ -67,21 +67,31 @@ export default function AdDisplay({ ad, slot }: Props) {
             unoptimized={ad.image_url.includes("blob.vercel-storage.com")}
           />
 
-          {/* Overlay with ad copy, shown on all if title exists */}
-          {(ad.title || ad.subtitle) && (
-            <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-black/20 to-transparent flex flex-col justify-center px-6">
+          {/* Overlay with ad copy */}
+          {(ad.title || ad.subtitle || ad.price_text || ad.rating_text || ad.social_proof) && (
+            <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/30 to-transparent flex flex-col justify-center px-5 sm:px-6 gap-0.5">
               {ad.title && (
-                <p className="text-white font-bold text-lg sm:text-2xl leading-tight drop-shadow">
+                <p className="text-white font-bold text-base sm:text-xl leading-tight drop-shadow">
                   {ad.title}
                 </p>
               )}
-              {ad.subtitle && (
-                <p className="text-white/90 text-sm sm:text-base mt-1 drop-shadow">
+              {ad.price_text && (
+                <p className="text-yellow-300 font-semibold text-sm sm:text-base leading-tight drop-shadow">
+                  {ad.price_text}
+                </p>
+              )}
+              {(ad.rating_text || ad.social_proof) && (
+                <p className="text-white/80 text-xs sm:text-sm leading-tight drop-shadow">
+                  {[ad.rating_text, ad.social_proof].filter(Boolean).join(" · ")}
+                </p>
+              )}
+              {ad.subtitle && !ad.price_text && !ad.rating_text && !ad.social_proof && (
+                <p className="text-white/90 text-sm sm:text-base leading-tight drop-shadow">
                   {ad.subtitle}
                 </p>
               )}
               {ad.cta_text && (
-                <span className="mt-3 self-start bg-green-500 hover:bg-green-600 text-white text-sm font-semibold px-4 py-1.5 rounded-lg transition-colors">
+                <span className="mt-2 self-start bg-green-500 hover:bg-green-600 text-white text-xs sm:text-sm font-semibold px-3 py-1.5 rounded-lg transition-colors">
                   {ad.cta_text}
                 </span>
               )}

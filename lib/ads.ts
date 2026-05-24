@@ -13,6 +13,9 @@ async function ensureTables(): Promise<void> {
       click_url     TEXT NOT NULL,
       title         TEXT,
       subtitle      TEXT,
+      price_text    TEXT,
+      rating_text   TEXT,
+      social_proof  TEXT,
       cta_text      TEXT NOT NULL DEFAULT 'Shop Now',
       alt_text      TEXT,
       slot_target   TEXT NOT NULL DEFAULT 'any',
@@ -25,6 +28,10 @@ async function ensureTables(): Promise<void> {
       updated_at    TIMESTAMPTZ DEFAULT NOW()
     )
   `;
+  // Add columns if table already existed without them
+  await sql`ALTER TABLE ads ADD COLUMN IF NOT EXISTS price_text TEXT`;
+  await sql`ALTER TABLE ads ADD COLUMN IF NOT EXISTS rating_text TEXT`;
+  await sql`ALTER TABLE ads ADD COLUMN IF NOT EXISTS social_proof TEXT`;
   await sql`
     CREATE TABLE IF NOT EXISTS ad_events (
       id          BIGSERIAL PRIMARY KEY,
@@ -51,6 +58,9 @@ export interface Ad {
   click_url: string;
   title: string | null;
   subtitle: string | null;
+  price_text: string | null;
+  rating_text: string | null;
+  social_proof: string | null;
   cta_text: string;
   alt_text: string | null;
   slot_target: string;
@@ -128,14 +138,14 @@ export async function getActiveAds(): Promise<Ad[]> {
 export async function createAd(data: Omit<Ad, "id" | "created_at" | "updated_at">): Promise<Ad> {
   await ensureTables();
   const rows = await sql`
-    INSERT INTO ads (name, type, image_url, click_url, title, subtitle, cta_text, alt_text, slot_target, weight, active, sponsored_label, starts_at, ends_at)
-    VALUES (${data.name}, ${data.type}, ${data.image_url}, ${data.click_url}, ${data.title ?? null}, ${data.subtitle ?? null}, ${data.cta_text}, ${data.alt_text ?? null}, ${data.slot_target}, ${data.weight}, ${data.active}, ${data.sponsored_label}, ${data.starts_at ?? null}, ${data.ends_at ?? null})
+    INSERT INTO ads (name, type, image_url, click_url, title, subtitle, price_text, rating_text, social_proof, cta_text, alt_text, slot_target, weight, active, sponsored_label, starts_at, ends_at)
+    VALUES (${data.name}, ${data.type}, ${data.image_url}, ${data.click_url}, ${data.title ?? null}, ${data.subtitle ?? null}, ${data.price_text ?? null}, ${data.rating_text ?? null}, ${data.social_proof ?? null}, ${data.cta_text}, ${data.alt_text ?? null}, ${data.slot_target}, ${data.weight}, ${data.active}, ${data.sponsored_label}, ${data.starts_at ?? null}, ${data.ends_at ?? null})
     RETURNING *
   ` as Array<Record<string, unknown>>;
   return coerceAd(rows[0]);
 }
 
-export async function updateAd(id: number, data: Partial<Pick<Ad, "name" | "click_url" | "title" | "subtitle" | "cta_text" | "alt_text" | "slot_target" | "weight" | "active" | "sponsored_label" | "starts_at" | "ends_at">>): Promise<void> {
+export async function updateAd(id: number, data: Partial<Pick<Ad, "name" | "click_url" | "title" | "subtitle" | "price_text" | "rating_text" | "social_proof" | "cta_text" | "alt_text" | "slot_target" | "weight" | "active" | "sponsored_label" | "starts_at" | "ends_at">>): Promise<void> {
   await ensureTables();
   await sql`
     UPDATE ads SET
@@ -143,6 +153,9 @@ export async function updateAd(id: number, data: Partial<Pick<Ad, "name" | "clic
       click_url       = COALESCE(${data.click_url ?? null}, click_url),
       title           = CASE WHEN ${data.title !== undefined} THEN ${data.title ?? null} ELSE title END,
       subtitle        = CASE WHEN ${data.subtitle !== undefined} THEN ${data.subtitle ?? null} ELSE subtitle END,
+      price_text      = CASE WHEN ${data.price_text !== undefined} THEN ${data.price_text ?? null} ELSE price_text END,
+      rating_text     = CASE WHEN ${data.rating_text !== undefined} THEN ${data.rating_text ?? null} ELSE rating_text END,
+      social_proof    = CASE WHEN ${data.social_proof !== undefined} THEN ${data.social_proof ?? null} ELSE social_proof END,
       cta_text        = COALESCE(${data.cta_text ?? null}, cta_text),
       alt_text        = CASE WHEN ${data.alt_text !== undefined} THEN ${data.alt_text ?? null} ELSE alt_text END,
       slot_target     = COALESCE(${data.slot_target ?? null}, slot_target),
@@ -232,6 +245,9 @@ function coerceAd(r: Record<string, unknown>): AdWithStats {
     click_url: String(r.click_url),
     title: r.title != null ? String(r.title) : null,
     subtitle: r.subtitle != null ? String(r.subtitle) : null,
+    price_text: r.price_text != null ? String(r.price_text) : null,
+    rating_text: r.rating_text != null ? String(r.rating_text) : null,
+    social_proof: r.social_proof != null ? String(r.social_proof) : null,
     cta_text: String(r.cta_text),
     alt_text: r.alt_text != null ? String(r.alt_text) : null,
     slot_target: String(r.slot_target),
