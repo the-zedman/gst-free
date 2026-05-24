@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { getActiveAds, pickAdsForSlots } from "@/lib/ads";
 import type { Ad } from "@/lib/ads";
 import AdDisplay from "./AdDisplay";
@@ -16,16 +17,24 @@ function groupFor(slotId: string): string {
   return "home";
 }
 
-const picksCache: Record<string, { picks: Record<string, Ad | null>; at: number }> = {};
-
-async function getPicksForGroup(group: string): Promise<Record<string, Ad | null>> {
-  const cached = picksCache[group];
-  if (cached && Date.now() - cached.at < 60_000) return cached.picks;
-  const ads = await getActiveAds().catch(() => []);
-  const picks = pickAdsForSlots(ads, SLOT_GROUPS[group] ?? []);
-  picksCache[group] = { picks, at: Date.now() };
-  return picks;
+// Module-level cache for active ads (avoids repeated DB hits across requests)
+let cachedAds: Awaited<ReturnType<typeof getActiveAds>> | null = null;
+let cacheAt = 0;
+async function getAds() {
+  if (!cachedAds || Date.now() - cacheAt > 60_000) {
+    cachedAds = await getActiveAds().catch(() => []);
+    cacheAt = Date.now();
+  }
+  return cachedAds;
 }
+
+// React cache() ensures all AdSlot components on the same page share one
+// pick result per group — prevents concurrent renders each computing their
+// own independent random picks and overwriting each other.
+const getPicksForGroup = cache(async (group: string): Promise<Record<string, Ad | null>> => {
+  const ads = await getAds();
+  return pickAdsForSlots(ads, SLOT_GROUPS[group] ?? []);
+});
 
 interface AdSlotProps {
   id: string;
