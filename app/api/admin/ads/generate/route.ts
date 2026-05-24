@@ -8,38 +8,6 @@ async function requireAdmin() {
   return sessionClaims?.metadata?.role === "admin";
 }
 
-export interface GeneratedCopy {
-  adName: string;
-  title: string;
-  subtitle: string;
-  price: string;
-  rating: string;
-  socialProof: string;
-  ctaText: string;
-  altText: string;
-  imagePrompt: string;
-}
-
-export async function POST(request: NextRequest) {
-  if (!(await requireAdmin())) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-
-  try {
-    const body = (await request.json()) as {
-      action: string;
-      productInfo?: ProductInfo;
-      productImageUrls?: string[];
-      copy?: GeneratedCopy;
-    };
-
-    if (body.action === "generate-copy") return generateCopy(body.productInfo!);
-    if (body.action === "generate-image") return generateAdImage(body.productInfo!, body.productImageUrls ?? [], body.copy);
-
-    return NextResponse.json({ error: "Unknown action" }, { status: 400 });
-  } catch (e) {
-    return NextResponse.json({ error: String(e) }, { status: 500 });
-  }
-}
-
 export interface ProductInfo {
   title: string;
   brand: string;
@@ -55,60 +23,141 @@ export interface ProductInfo {
   imagePrompt?: string;
 }
 
-async function generateCopy(product: ProductInfo) {
-  const specsText = Object.entries(product.specs ?? {}).map(([k, v]) => `${k}: ${v}`).join(", ");
-  const priceLine = [
-    product.price && `Now ${product.price}`,
-    product.rrp && `was ${product.rrp}`,
-    product.discount && `(${product.discount} off)`,
-  ].filter(Boolean).join(" · ");
-  const socialLine = [
-    product.rating && `${product.rating}★ (${product.reviewCount} reviews)`,
-    product.socialProof,
-  ].filter(Boolean).join(" · ");
+export async function POST(request: NextRequest) {
+  if (!(await requireAdmin())) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  try {
+    const body = (await request.json()) as {
+      action: string;
+      productInfo?: ProductInfo;
+      productPosition?: "left" | "right";
+      ctaText?: string;
+      productImageUrls?: string[];
+    };
+
+    if (body.action === "generate-prompt") {
+      return generateGeminiPrompt(
+        body.productInfo!,
+        body.productPosition ?? "right",
+        body.ctaText ?? "Shop Now",
+      );
+    }
+    if (body.action === "generate-image") {
+      return generateAdImage(body.productInfo!, body.productImageUrls ?? []);
+    }
+
+    return NextResponse.json({ error: "Unknown action" }, { status: 400 });
+  } catch (e) {
+    return NextResponse.json({ error: String(e) }, { status: 500 });
+  }
+}
+
+async function generateGeminiPrompt(
+  product: ProductInfo,
+  position: "left" | "right",
+  ctaText: string,
+) {
+  const specsText = Object.entries(product.specs ?? {})
+    .map(([k, v]) => `${k}: ${v}`)
+    .join(", ");
 
   const { text } = await generateText({
     model: gateway("anthropic/claude-haiku-4-5-20251001"),
     messages: [{
       role: "user",
-      content: `Create compelling ad copy for this product. Return ONLY valid JSON, no markdown, no code blocks.
+      content: `You are an advertising copywriter. Given this product data, return ONLY valid JSON with no markdown or code blocks.
 
 Product: ${product.title}
 Brand: ${product.brand}
-${priceLine}
-${socialLine}
+Price: ${product.price}${product.rrp ? ` (was ${product.rrp})` : ""}${product.discount ? `, ${product.discount} off` : ""}
+Rating: ${product.rating}${product.reviewCount ? ` (${product.reviewCount} reviews)` : ""}
+Social proof: ${product.socialProof}
 Description: ${product.description}
 Key features: ${product.features.join(" | ")}
 ${specsText ? `Specs: ${specsText}` : ""}
 
 Return JSON with these fields:
-- adName: concise internal name (brand + product type + month/year, e.g. "Ninja Food Processor May 2026")
-- title: punchy headline (max 8 words, very compelling, benefit-led — e.g. "Master Every Meal in Seconds")
-- subtitle: feature-focused supporting line (max 12 words, highlight the top benefit or feature — do NOT include price, rating or social proof here, those are shown separately)
-- price: formatted price display string combining all price info (e.g. "$119.00 · was $249.99 · 52% off"), or empty string if no price data available
-- rating: formatted rating display (e.g. "4.7★ (418 reviews)"), or empty string if no rating data available
-- socialProof: social proof text exactly as it appears (e.g. "Amazon's Choice · 700+ bought in past month"), or empty string if none
-- ctaText: call to action (2-4 words, action-oriented, e.g. "Shop Now", "Grab the Deal", "Buy on Amazon")
-- altText: descriptive image alt text for accessibility
-- imagePrompt: a concise description of what this product looks like physically (shape, colour, key components) for use in image generation — 2-3 sentences`,
+- adName: internal name (brand + short product type + Mon YYYY, e.g. "Ninja Food Processor May 2026")
+- headline: punchy benefit-led headline, max 8 words (e.g. "Master Every Meal in Seconds")
+- featureLine: single most compelling feature/benefit, max 15 words, written as a punchy sentence
+- productShortName: short product name for the banner (brand + key product type only, e.g. "Ninja Professional Food Processor")
+- productAppearance: 1-2 sentence visual description of the product's colour, shape and key physical features (infer from product name and specs)
+- backgroundSuggestion: If this product belongs to a specific use environment (kitchen appliance → stylish modern kitchen with bench, splashback and ambient lighting; fitness → gym or outdoor setting; tech → clean minimal desk; beauty → bathroom/vanity), describe that specific aspirational scene in 2 sentences. Otherwise describe a rich premium dark gradient or textured background suited to the product's colour palette. Be specific and evocative.
+- altText: accessibility alt text for the finished banner ad`,
     }],
   });
 
-  let copy;
+  let parsed: Record<string, string>;
   try {
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    copy = JSON.parse(jsonMatch?.[0] ?? text);
+    const match = text.match(/\{[\s\S]*\}/);
+    parsed = JSON.parse(match?.[0] ?? text);
   } catch {
-    return NextResponse.json({ error: "Failed to generate ad copy" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to generate prompt" }, { status: 500 });
   }
 
-  return NextResponse.json({ copy });
+  const adName = parsed.adName ?? `${product.brand} Ad`;
+  const headline = parsed.headline ?? product.title.slice(0, 50);
+  const featureLine = parsed.featureLine ?? product.features[0] ?? "";
+  const productShortName = parsed.productShortName ?? `${product.brand} ${product.title.split(",")[0]}`;
+  const backgroundSuggestion = parsed.backgroundSuggestion ?? "a rich, deep premium gradient background that complements the product's colour palette";
+
+  const priceLine = [
+    product.price && `**${product.price}**`,
+    product.rrp && `~~${product.rrp}~~`,
+    product.discount && `**${product.discount} off**`,
+  ].filter(Boolean).join(" ");
+
+  const copyBlock = position === "right"
+    ? `- Left 45%: ad copy in this exact order from top to bottom — headline, product name, price, rating, social proof, feature line, CTA button. Clean readable hierarchy with appropriate spacing between each element.
+- Right 55%: the full product, completely visible with no cropping at any edge, floating naturally with a subtle drop shadow beneath it.`
+    : `- Left 55%: the full product, completely visible with no cropping at any edge, floating naturally with a subtle drop shadow beneath it.
+- Right 45%: ad copy in this exact order from top to bottom — headline, product name, price, rating, social proof, feature line, CTA button. Clean readable hierarchy with appropriate spacing between each element.`;
+
+  const geminiPrompt = `You are a professional advertising designer. Using the product screenshot I've uploaded as your exact visual reference, design a complete, print-ready Amazon-style product advertisement banner — including all text, layout, background and the product image.
+
+**Output:** 1200 × 400 pixels, landscape (3:1 wide banner)
+
+**Product:**
+${product.title} by ${product.brand}. Reproduce the exact product from the screenshot — same model, ${parsed.productAppearance ?? "colour, shape and key physical features"}. Do not invent details not in the screenshot.
+
+**Ad copy to include (design these into the banner):**
+- Headline: **${headline}**
+- Product name: **${productShortName}** (bold, slightly smaller than headline)
+- Price: ${priceLine}${product.rating ? `\n- Rating: **${product.rating}★** (${product.reviewCount} reviews)` : ""}${product.socialProof ? `\n- Social proof: **${product.socialProof}**` : ""}
+- Key feature line: *${featureLine}*
+- CTA button: **${ctaText}** (green button, white text)
+
+**Layout:**
+${copyBlock}
+
+**Background:**
+${backgroundSuggestion} The background must work cohesively behind both the text area and the product area. If a scene is used, it should feel aspirational and premium, not cluttered — the product and text must remain the clear focus.
+
+**Typography:**
+- Headline: large, bold, white
+- Product name: bold, white, slightly smaller than headline
+- Price: bold white for current price, struck-through grey for RRP, bright green or yellow for the discount percentage
+- Rating and social proof: smaller, white or light grey
+- Feature line: italic, white/light
+- CTA button: solid green (#22c55e), white bold text, rounded corners
+
+**Style:**
+- Professional, modern Amazon-style advertisement
+- High contrast text — all copy must be clearly legible against the background
+- The product should look photorealistic and sharp, as if professionally photographed
+- Overall feel: premium, trustworthy, great deal
+
+**Do not:**
+- Leave the product cropped at any edge
+- Use a plain flat white or grey background — make it rich and product-appropriate
+- Add any elements not listed above`;
+
+  return NextResponse.json({ geminiPrompt, adName, altText: parsed.altText ?? "" });
 }
 
-async function generateAdImage(product: ProductInfo, productImageUrls: string[], copy?: GeneratedCopy) {
+async function generateAdImage(product: ProductInfo, productImageUrls: string[]) {
   let visualDescription = "";
 
-  // If product photos were uploaded, ask Claude to describe the product visually from them
   if (productImageUrls.length > 0) {
     const imageContent = productImageUrls.slice(0, 6).map((url) => ({
       type: "image" as const,
@@ -123,16 +172,7 @@ async function generateAdImage(product: ProductInfo, productImageUrls: string[],
           ...imageContent,
           {
             type: "text",
-            text: `These are product photos of: ${product.title}
-
-Describe the product's visual appearance in detail for use in an AI image generation prompt. Focus on:
-- Exact shape and form factor
-- Colour(s) and finish (matte/gloss/metallic etc.)
-- Key visible components and features
-- Any text or branding visible on the product
-- Scale and proportions
-
-Write 3-4 sentences, be very specific about visual details. Do not describe the background or staging — only the product itself.`,
+            text: `Describe the visual appearance of this product in 3-4 sentences for use in an image generation prompt. Focus on exact shape, colour, finish, key visible components and branding.`,
           },
         ],
       }],
@@ -140,33 +180,14 @@ Write 3-4 sentences, be very specific about visual details. Do not describe the 
     visualDescription = text.trim();
   }
 
-  // Use Claude as creative director to write the optimal Flux prompt
-  const priceLine = [
-    product.price && `${product.price}`,
-    product.rrp && `was ${product.rrp}`,
-    product.discount && `${product.discount} off`,
-  ].filter(Boolean).join(", ");
-
   const { text: fluxPrompt } = await generateText({
     model: gateway("anthropic/claude-sonnet-4-6"),
     messages: [{
       role: "user",
-      content: `You are a professional advertising creative director. Write the single best Flux image generation prompt for a 3:1 wide banner ad for this product.
-
-Product: ${product.title} by ${product.brand}
-${priceLine ? `Price: ${priceLine}` : ""}
-${visualDescription ? `Visual appearance: ${visualDescription}` : copy?.imagePrompt ? `Product description: ${copy.imagePrompt}` : ""}
-${copy ? `Ad headline: "${copy.title}"` : ""}
-${copy?.subtitle ? `Ad subtitle: "${copy.subtitle}"` : ""}
-
-Critical composition requirements:
-1. The product must appear SMALL relative to the overall image — occupying no more than 35% of the total image area — so that it fits entirely within the frame with large amounts of white space surrounding it on all sides
-2. The product is positioned in the RIGHT THIRD of the image, vertically centred, fully visible, with clear empty space above, below, and to the right of it
-3. The LEFT TWO-THIRDS of the image is clean, minimal white or very light grey — suitable for text overlay
-4. Professional commercial photography: clean white or very light grey background, photorealistic, studio lighting, high resolution
-5. Think about the product's form factor: tall products (blenders, bottles, stand mixers) must have significant empty space above and below; wide products (laptops, monitors) must have space left and right — scale it down accordingly
-
-Write ONLY the Flux prompt text, nothing else. No explanation, no preamble, no quotes.`,
+      content: `Write a Flux image generation prompt for a 3:1 wide banner ad for: ${product.title} by ${product.brand}.
+${visualDescription ? `Visual appearance: ${visualDescription}` : ""}
+Requirements: entire product fully visible, product in right 55% of frame, left 45% clean for text overlay, professional studio photography, white/light grey background, no cropping.
+Write ONLY the prompt, no explanation.`,
     }],
   });
 

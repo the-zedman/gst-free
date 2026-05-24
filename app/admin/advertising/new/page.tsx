@@ -3,10 +3,24 @@
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import type { ProductInfo, GeneratedCopy } from "@/app/api/admin/ads/generate/route";
+import type { ProductInfo } from "@/app/api/admin/ads/generate/route";
 
 type AdType = "ai" | "upload";
-type Step = "type" | "source" | "copy" | "details";
+type Step = "type" | "source" | "prompt" | "details";
+
+const CTA_OPTIONS = [
+  "Shop Now",
+  "Grab the Deal",
+  "Buy on Amazon",
+  "Get Yours Today",
+  "See the Deal",
+  "Check Price",
+  "Order Now",
+  "View on Amazon",
+  "Don't Miss Out",
+  "Claim the Deal",
+  "Save Now",
+];
 
 const SLOTS = [
   { value: "any", label: "Any slot (cycling)" },
@@ -21,37 +35,33 @@ export default function NewAdPage() {
   const [step, setStep] = useState<Step>("type");
 
   // AI flow — screenshot
-  const [screenshotPreview, setScreenshotPreview] = useState<string>("");
+  const [screenshotPreview, setScreenshotPreview] = useState("");
   const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
   const screenshotRef = useRef<HTMLInputElement>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [analyzeError, setAnalyzeError] = useState("");
   const [productInfo, setProductInfo] = useState<ProductInfo | null>(null);
 
-  // AI flow — product images (up to 6)
-  const [productImages, setProductImages] = useState<Array<{ file: File; preview: string; url: string | null }>>([]);
-  const productImageRef = useRef<HTMLInputElement>(null);
+  // AI flow — prompt options
+  const [productPosition, setProductPosition] = useState<"left" | "right">("right");
+  const [ctaSelection, setCtaSelection] = useState("Shop Now");
+  const [customCta, setCustomCta] = useState("");
+  const [generatingPrompt, setGeneratingPrompt] = useState(false);
+  const [geminiPrompt, setGeminiPrompt] = useState("");
+  const [promptCopied, setPromptCopied] = useState(false);
 
-  // AI flow — copy + image generation
-  const [generatingCopy, setGeneratingCopy] = useState(false);
-  const [copy, setCopy] = useState<GeneratedCopy | null>(null);
-  const [generatingImage, setGeneratingImage] = useState(false);
-  const [generatedImageUrl, setGeneratedImageUrl] = useState("");
-
-  // Upload flow
+  // Image upload (both flows)
   const [uploadedImageUrl, setUploadedImageUrl] = useState("");
   const [uploading, setUploading] = useState(false);
   const uploadRef = useRef<HTMLInputElement>(null);
+  const geminiUploadRef = useRef<HTMLInputElement>(null);
 
   // Shared details
   const [name, setName] = useState("");
+  const [altText, setAltText] = useState("");
   const [title, setTitle] = useState("");
   const [subtitle, setSubtitle] = useState("");
-  const [priceText, setPriceText] = useState("");
-  const [ratingText, setRatingText] = useState("");
-  const [socialProofText, setSocialProofText] = useState("");
   const [ctaText, setCtaText] = useState("Shop Now");
-  const [altText, setAltText] = useState("");
   const [clickUrl, setClickUrl] = useState("");
   const [slotTarget, setSlotTarget] = useState("any");
   const [weight, setWeight] = useState(1);
@@ -61,7 +71,8 @@ export default function NewAdPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  const imageUrl = adType === "ai" ? generatedImageUrl : uploadedImageUrl;
+  const imageUrl = uploadedImageUrl;
+  const effectiveCta = ctaSelection === "Custom" ? customCta : ctaSelection;
 
   // ── Screenshot handling ───────────────────────────────────────────────
 
@@ -72,13 +83,12 @@ export default function NewAdPage() {
     setScreenshotPreview(URL.createObjectURL(file));
     setAnalyzeError("");
     setProductInfo(null);
-    setCopy(null);
-    setGeneratedImageUrl("");
+    setGeminiPrompt("");
   }
 
   async function handleAnalyze() {
     if (!screenshotFile) return;
-    setAnalyzing(true); setAnalyzeError(""); setProductInfo(null); setCopy(null);
+    setAnalyzing(true); setAnalyzeError(""); setProductInfo(null); setGeminiPrompt("");
 
     const formData = new FormData();
     formData.append("screenshot", screenshotFile);
@@ -89,94 +99,60 @@ export default function NewAdPage() {
 
     if (data.error) { setAnalyzeError(data.error); return; }
     setProductInfo(data.productInfo!);
-    setStep("copy");
-    handleGenerateCopy(data.productInfo!);
+    setStep("prompt");
   }
 
-  // ── Product images ────────────────────────────────────────────────────
+  // ── Gemini prompt generation ──────────────────────────────────────────
 
-  function handleProductImagesSelect(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files ?? []);
-    const remaining = 6 - productImages.length;
-    const toAdd = files.slice(0, remaining);
-
-    const newImages = toAdd.map((file) => ({
-      file,
-      preview: URL.createObjectURL(file),
-      url: null as string | null,
-    }));
-    setProductImages((prev) => [...prev, ...newImages]);
-
-    // Upload each to blob
-    newImages.forEach((img, i) => {
-      const idx = productImages.length + i;
-      uploadProductImage(img.file, idx);
-    });
-
-    e.target.value = "";
-  }
-
-  async function uploadProductImage(file: File, idx: number) {
-    const formData = new FormData();
-    formData.append("file", file);
-    const res = await fetch("/api/admin/ads/upload", { method: "POST", body: formData });
-    const data = await res.json() as { url?: string };
-    if (data.url) {
-      setProductImages((prev) => prev.map((img, i) => i === idx ? { ...img, url: data.url! } : img));
-    }
-  }
-
-  function removeProductImage(idx: number) {
-    setProductImages((prev) => prev.filter((_, i) => i !== idx));
-  }
-
-  // ── Copy + image generation ───────────────────────────────────────────
-
-  async function handleGenerateCopy(info?: ProductInfo) {
-    const product = info ?? productInfo;
-    if (!product) return;
-    setGeneratingCopy(true); setCopy(null);
-
-    const res = await fetch("/api/admin/ads/generate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "generate-copy", productInfo: product }),
-    });
-    const data = await res.json() as { copy?: GeneratedCopy; error?: string };
-    setGeneratingCopy(false);
-
-    if (data.copy) {
-      setCopy(data.copy);
-      setName(data.copy.adName);
-      setTitle(data.copy.title);
-      setSubtitle(data.copy.subtitle);
-      setPriceText(data.copy.price ?? "");
-      setRatingText(data.copy.rating ?? "");
-      setSocialProofText(data.copy.socialProof ?? "");
-      setCtaText(data.copy.ctaText);
-      setAltText(data.copy.altText);
-    }
-  }
-
-  async function handleGenerateImage() {
-    if (!productInfo || !copy) return;
-    setGeneratingImage(true); setGeneratedImageUrl("");
-
-    const productImageUrls = productImages.filter((img) => img.url).map((img) => img.url!);
+  async function handleGeneratePrompt() {
+    if (!productInfo) return;
+    setGeneratingPrompt(true); setGeminiPrompt("");
 
     const res = await fetch("/api/admin/ads/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        action: "generate-image",
-        productInfo: { ...productInfo, imagePrompt: copy.imagePrompt },
-        productImageUrls,
-        copy,
+        action: "generate-prompt",
+        productInfo,
+        productPosition,
+        ctaText: effectiveCta,
       }),
     });
-    const data = await res.json() as { imageUrl?: string; error?: string };
-    setGeneratingImage(false);
-    if (data.imageUrl) setGeneratedImageUrl(data.imageUrl);
+    const data = await res.json() as { geminiPrompt?: string; adName?: string; altText?: string; error?: string };
+    setGeneratingPrompt(false);
+
+    if (data.error) { setAnalyzeError(data.error); return; }
+    setGeminiPrompt(data.geminiPrompt!);
+    if (data.adName) setName(data.adName);
+    if (data.altText) setAltText(data.altText);
+  }
+
+  async function handleCopyPrompt() {
+    await navigator.clipboard.writeText(geminiPrompt);
+    setPromptCopied(true);
+    setTimeout(() => setPromptCopied(false), 2000);
+  }
+
+  // ── Gemini result upload ──────────────────────────────────────────────
+
+  async function handleGeminiImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true); setUploadedImageUrl("");
+
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch("/api/admin/ads/upload", { method: "POST", body: formData });
+    const data = await res.json() as { url?: string; error?: string };
+    setUploading(false);
+
+    if (data.url) {
+      setUploadedImageUrl(data.url);
+      setStep("details");
+    } else {
+      setAnalyzeError(data.error ?? "Upload failed");
+    }
+    e.target.value = "";
   }
 
   // ── Upload flow ───────────────────────────────────────────────────────
@@ -185,11 +161,13 @@ export default function NewAdPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true); setUploadedImageUrl("");
+
     const formData = new FormData();
     formData.append("file", file);
     const res = await fetch("/api/admin/ads/upload", { method: "POST", body: formData });
     const data = await res.json() as { url?: string; error?: string };
     setUploading(false);
+
     if (data.url) { setUploadedImageUrl(data.url); setStep("details"); }
     else setError(data.error ?? "Upload failed");
   }
@@ -199,14 +177,16 @@ export default function NewAdPage() {
   async function handleSave() {
     if (!imageUrl || !clickUrl || !name) { setError("Name, image and click URL are required"); return; }
     setSaving(true); setError("");
+
     const res = await fetch("/api/admin/ads", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         name, type: adType, image_url: imageUrl, click_url: clickUrl,
         title: title || null, subtitle: subtitle || null,
-        price_text: priceText || null, rating_text: ratingText || null, social_proof: socialProofText || null,
-        cta_text: ctaText, alt_text: altText || null, slot_target: slotTarget, weight,
+        price_text: null, rating_text: null, social_proof: null,
+        cta_text: effectiveCta || ctaText || "Shop Now",
+        alt_text: altText || null, slot_target: slotTarget, weight,
         active: true, sponsored_label: sponsoredLabel,
         starts_at: startsAt || null, ends_at: endsAt || null,
       }),
@@ -236,7 +216,7 @@ export default function NewAdPage() {
               <span className="text-4xl">🤖</span>
               <div>
                 <p className="font-semibold text-gray-900 group-hover:text-green-700">AI Generated</p>
-                <p className="text-xs text-gray-400 mt-1">Screenshot an Amazon product page. Claude reads it and generates compelling ad copy and a product image.</p>
+                <p className="text-xs text-gray-400 mt-1">Screenshot an Amazon product page. Claude reads it and builds a Gemini prompt to create a complete ad banner.</p>
               </div>
             </button>
             <button onClick={() => { setAdType("upload"); setStep("source"); }}
@@ -251,14 +231,13 @@ export default function NewAdPage() {
         </div>
       )}
 
-      {/* Step 2a: AI — Screenshot + product images */}
+      {/* Step 2a: AI — Screenshot */}
       {step === "source" && adType === "ai" && (
         <div className="space-y-4">
-          {/* Screenshot upload */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
             <div>
               <h2 className="font-semibold text-gray-900">Screenshot the Amazon product page</h2>
-              <p className="text-sm text-gray-400 mt-1">Take a screenshot of the full product page and upload it here. Claude will extract the product name, price, discount, rating, features and specs.</p>
+              <p className="text-sm text-gray-400 mt-1">Take a full-page screenshot and upload it. Claude will extract the product name, price, discount, rating, features and specs.</p>
             </div>
 
             <input ref={screenshotRef} type="file" accept="image/*" className="hidden" onChange={handleScreenshotSelect} />
@@ -282,51 +261,6 @@ export default function NewAdPage() {
             )}
 
             {analyzeError && <p className="text-sm text-red-600 bg-red-50 rounded-xl px-4 py-3">{analyzeError}</p>}
-          </div>
-
-          {/* Product images */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
-            <div>
-              <h2 className="font-semibold text-gray-900">Product photos <span className="text-gray-400 font-normal">(optional, recommended)</span></h2>
-              <p className="text-sm text-gray-400 mt-1">Upload up to 6 product photos from the Amazon listing. Claude will use these to accurately describe the product&apos;s appearance when generating the ad image — much better results than without them.</p>
-            </div>
-
-            <div className="grid grid-cols-3 gap-3">
-              {productImages.map((img, i) => (
-                <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-gray-100 bg-gray-50 group">
-                  <img src={img.preview} alt={`Product image ${i + 1}`} className="w-full h-full object-contain" />
-                  {!img.url && (
-                    <div className="absolute inset-0 bg-white/60 flex items-center justify-center">
-                      <span className="text-xs text-gray-500">Uploading…</span>
-                    </div>
-                  )}
-                  <button
-                    onClick={() => removeProductImage(i)}
-                    className="absolute top-1 right-1 w-5 h-5 bg-black/40 hover:bg-red-500 text-white rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                  >✕</button>
-                </div>
-              ))}
-
-              {productImages.length < 6 && (
-                <button
-                  onClick={() => productImageRef.current?.click()}
-                  className="aspect-square rounded-xl border-2 border-dashed border-gray-200 hover:border-green-400 flex flex-col items-center justify-center text-gray-300 hover:text-green-600 transition-colors"
-                >
-                  <span className="text-2xl">+</span>
-                  <span className="text-xs mt-1">{productImages.length === 0 ? "Add photos" : "Add more"}</span>
-                </button>
-              )}
-            </div>
-
-            <input
-              ref={productImageRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              multiple
-              className="hidden"
-              onChange={handleProductImagesSelect}
-            />
-            <p className="text-xs text-gray-300">{productImages.length}/6 photos added</p>
           </div>
 
           <button
@@ -354,141 +288,142 @@ export default function NewAdPage() {
         </div>
       )}
 
-      {/* Step 3: Review copy + generate image */}
-      {step === "copy" && adType === "ai" && (
+      {/* Step 3: Prompt builder */}
+      {step === "prompt" && adType === "ai" && (
         <div className="space-y-4">
+
           {/* Extracted product info */}
           {productInfo && (
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
               <h2 className="font-semibold text-gray-900 mb-3">Extracted from screenshot</h2>
               <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
-                <div><span className="text-gray-400">Product:</span> <span className="text-gray-800">{productInfo.title?.slice(0, 70)}{(productInfo.title?.length ?? 0) > 70 ? "…" : ""}</span></div>
+                <div className="col-span-2"><span className="text-gray-400">Product:</span> <span className="text-gray-800">{productInfo.title?.slice(0, 80)}{(productInfo.title?.length ?? 0) > 80 ? "…" : ""}</span></div>
                 <div><span className="text-gray-400">Brand:</span> <span className="text-gray-800">{productInfo.brand || "—"}</span></div>
+                <div><span className="text-gray-400">Rating:</span> <span className="text-gray-800">{productInfo.rating ? `${productInfo.rating}★ (${productInfo.reviewCount})` : "—"}</span></div>
                 <div><span className="text-gray-400">Price:</span> <span className="font-semibold text-gray-900">{productInfo.price || "—"}</span>{productInfo.rrp && <span className="text-gray-400 line-through ml-2">{productInfo.rrp}</span>}{productInfo.discount && <span className="text-green-600 ml-2">{productInfo.discount} off</span>}</div>
-                <div><span className="text-gray-400">Rating:</span> <span className="text-gray-800">{productInfo.rating || "—"}★ ({productInfo.reviewCount || "—"})</span></div>
                 {productInfo.socialProof && <div className="col-span-2"><span className="text-gray-400">Social proof:</span> <span className="text-gray-800">{productInfo.socialProof}</span></div>}
               </div>
               {productInfo.features?.length > 0 && (
                 <ul className="mt-3 space-y-1">
-                  {productInfo.features.slice(0, 5).map((f, i) => <li key={i} className="text-xs text-gray-500">• {f}</li>)}
+                  {productInfo.features.slice(0, 4).map((f, i) => <li key={i} className="text-xs text-gray-500">• {f}</li>)}
                 </ul>
-              )}
-              {productInfo.specs && Object.keys(productInfo.specs).length > 0 && (
-                <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-400">
-                  {Object.entries(productInfo.specs).map(([k, v]) => <span key={k}><span className="font-medium text-gray-500">{k}:</span> {v}</span>)}
-                </div>
               )}
             </div>
           )}
 
-          {/* Generated copy */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="font-semibold text-gray-900">Generated ad copy</h2>
-              <button onClick={() => handleGenerateCopy()} disabled={generatingCopy} className="text-xs text-green-700 hover:underline disabled:opacity-50">
-                {generatingCopy ? "Generating…" : "↺ Regenerate"}
-              </button>
-            </div>
-            {generatingCopy ? (
-              <div className="animate-pulse space-y-2">
-                <div className="h-4 bg-gray-100 rounded w-2/3" />
-                <div className="h-3 bg-gray-100 rounded w-1/2" />
-                <div className="h-3 bg-gray-100 rounded w-1/3" />
-              </div>
-            ) : copy && (
-              <div className="space-y-3">
-                <Field label="Ad name (internal)" value={name} onChange={setName} />
-                <Field label="Headline" value={title} onChange={setTitle} />
-                <Field label="Subtitle (feature copy)" value={subtitle} onChange={setSubtitle} />
-                <Field label="Price display" value={priceText} onChange={setPriceText} />
-                <Field label="Rating" value={ratingText} onChange={setRatingText} />
-                <Field label="Social proof" value={socialProofText} onChange={setSocialProofText} />
-                <Field label="CTA button" value={ctaText} onChange={setCtaText} />
-                <Field label="Alt text" value={altText} onChange={setAltText} />
-              </div>
-            )}
-          </div>
+          {/* Options */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-5">
+            <h2 className="font-semibold text-gray-900">Ad options</h2>
 
-          {/* Image generation */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="font-semibold text-gray-900">Ad image</h2>
-              {generatedImageUrl && (
-                <button onClick={handleGenerateImage} disabled={generatingImage} className="text-xs text-green-700 hover:underline disabled:opacity-50">
-                  {generatingImage ? "Generating…" : "↺ Regenerate image"}
+            {/* Product position */}
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-2">Product image position</label>
+              <div className="grid grid-cols-2 gap-3">
+                {(["right", "left"] as const).map((pos) => (
+                  <button
+                    key={pos}
+                    onClick={() => setProductPosition(pos)}
+                    className={`flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${productPosition === pos ? "border-green-400 bg-green-50 text-green-800" : "border-gray-200 text-gray-600 hover:border-gray-300"}`}
+                  >
+                    {pos === "right" ? (
+                      <><span className="text-base">📝</span> Copy left · Product right</>
+                    ) : (
+                      <><span className="text-base">🖼️</span> Product left · Copy right</>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* CTA selection */}
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-2">CTA button text</label>
+              <div className="flex flex-wrap gap-2">
+                {CTA_OPTIONS.map((cta) => (
+                  <button
+                    key={cta}
+                    onClick={() => setCtaSelection(cta)}
+                    className={`px-3 py-1.5 rounded-lg text-sm border transition-all ${ctaSelection === cta ? "border-green-400 bg-green-50 text-green-800 font-medium" : "border-gray-200 text-gray-600 hover:border-gray-300"}`}
+                  >
+                    {cta}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setCtaSelection("Custom")}
+                  className={`px-3 py-1.5 rounded-lg text-sm border transition-all ${ctaSelection === "Custom" ? "border-purple-400 bg-purple-50 text-purple-800 font-medium" : "border-gray-200 text-gray-600 hover:border-gray-300"}`}
+                >
+                  Custom…
                 </button>
+              </div>
+              {ctaSelection === "Custom" && (
+                <input
+                  type="text"
+                  value={customCta}
+                  onChange={(e) => setCustomCta(e.target.value)}
+                  placeholder="Enter your CTA text…"
+                  className="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+                />
               )}
             </div>
 
-            {productImages.length > 0 && (
-              <p className="text-xs text-gray-400">
-                ✓ {productImages.filter(i => i.url).length}/{productImages.length} product photos uploaded
-              </p>
-            )}
-
-            {/* Use a product photo directly as the banner */}
-            {productImages.some(i => i.url) && (
-              <div className="space-y-2">
-                <p className="text-xs font-medium text-gray-500">Use a product photo as your banner:</p>
-                <div className="grid grid-cols-3 gap-2">
-                  {productImages.filter(i => i.url).map((img, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setGeneratedImageUrl(img.url!)}
-                      className={`relative rounded-xl overflow-hidden border-2 transition-all ${generatedImageUrl === img.url ? "border-green-400 ring-2 ring-green-200" : "border-gray-200 hover:border-green-300"}`}
-                    >
-                      <div className="aspect-[3/1] bg-white">
-                        <img src={img.preview} alt={`Product ${i + 1}`} className="w-full h-full object-contain" />
-                      </div>
-                      <span className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors flex items-end justify-center pb-1">
-                        <span className="text-[10px] text-white bg-black/40 rounded px-1.5 py-0.5 opacity-0 group-hover:opacity-100">Use this</span>
-                      </span>
-                    </button>
-                  ))}
-                </div>
-                <p className="text-xs text-gray-300">Or generate a new image with AI below.</p>
-              </div>
-            )}
-
-            {!generatedImageUrl && !generatingImage && (
-              <button
-                onClick={handleGenerateImage}
-                disabled={!copy || generatingCopy}
-                className="w-full border-2 border-dashed border-gray-200 hover:border-purple-400 rounded-xl p-8 text-center transition-colors disabled:opacity-40 group"
-              >
-                <p className="text-3xl mb-2">🎨</p>
-                <p className="text-sm text-gray-500 group-hover:text-purple-700">Generate AI banner image</p>
-                <p className="text-xs text-gray-300 mt-1">Flux 2 Pro · ~30–45s · stylised interpretation of product</p>
-              </button>
-            )}
-
-            {generatingImage && (
-              <div className="w-full aspect-[3/1] bg-gray-100 rounded-xl animate-pulse flex items-center justify-center">
-                <p className="text-sm text-gray-400">Generating… {productImages.length > 0 ? "using your product photos as reference" : ""}</p>
-              </div>
-            )}
-
-            {generatedImageUrl && (
-              <div className="relative w-full aspect-[3/1] rounded-xl overflow-hidden border border-gray-100 bg-white">
-                <Image src={generatedImageUrl} alt="Generated ad" fill className="object-contain" unoptimized />
-                {(title || priceText || ratingText || socialProofText) && (
-                  <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/30 to-transparent flex flex-col justify-center px-5 gap-0.5 pointer-events-none">
-                    {title && <p className="text-white font-bold text-base sm:text-xl leading-tight drop-shadow">{title}</p>}
-                    {priceText && <p className="text-yellow-300 font-semibold text-sm leading-tight drop-shadow">{priceText}</p>}
-                    {(ratingText || socialProofText) && <p className="text-white/80 text-xs leading-tight drop-shadow">{[ratingText, socialProofText].filter(Boolean).join(" · ")}</p>}
-                    {subtitle && <p className="text-white/85 text-xs leading-tight drop-shadow">{subtitle}</p>}
-                    {ctaText && <span className="mt-2 self-start bg-green-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg">{ctaText}</span>}
-                  </div>
-                )}
-              </div>
-            )}
+            <button
+              onClick={handleGeneratePrompt}
+              disabled={generatingPrompt || !productInfo || (ctaSelection === "Custom" && !customCta)}
+              className="w-full bg-green-600 hover:bg-green-700 disabled:bg-green-300 text-white font-semibold py-3 rounded-xl transition-colors"
+            >
+              {generatingPrompt ? "Generating prompt…" : "Generate Gemini Prompt →"}
+            </button>
           </div>
 
-          {generatedImageUrl && copy && (
-            <button onClick={() => setStep("details")}
-              className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-xl transition-colors">
-              Continue to ad details →
-            </button>
+          {/* Generated prompt */}
+          {geminiPrompt && (
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <h2 className="font-semibold text-gray-900">Gemini prompt</h2>
+                <button
+                  onClick={handleCopyPrompt}
+                  className={`text-sm font-medium px-3 py-1.5 rounded-lg transition-all ${promptCopied ? "bg-green-100 text-green-700" : "bg-gray-100 hover:bg-gray-200 text-gray-700"}`}
+                >
+                  {promptCopied ? "✓ Copied!" : "Copy prompt"}
+                </button>
+              </div>
+              <textarea
+                readOnly
+                value={geminiPrompt}
+                rows={16}
+                className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-xs text-gray-700 font-mono bg-gray-50 focus:outline-none resize-none"
+              />
+              <div className="bg-blue-50 rounded-xl p-4 text-sm text-blue-800 space-y-1.5">
+                <p className="font-semibold">Next steps:</p>
+                <ol className="space-y-1 text-blue-700 list-decimal list-inside">
+                  <li>Copy the prompt above</li>
+                  <li>Open Google Gemini and start a new chat</li>
+                  <li>Upload your product screenshot</li>
+                  <li>Paste the prompt and send</li>
+                  <li>Download the generated banner image</li>
+                  <li>Upload it below</li>
+                </ol>
+              </div>
+            </div>
+          )}
+
+          {/* Upload Gemini result */}
+          {geminiPrompt && (
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-3">
+              <h2 className="font-semibold text-gray-900">Upload the finished ad</h2>
+              <p className="text-sm text-gray-400">Once Gemini has generated the banner, download it and upload it here.</p>
+              <input ref={geminiUploadRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleGeminiImageUpload} />
+              <button
+                onClick={() => geminiUploadRef.current?.click()}
+                disabled={uploading}
+                className="w-full border-2 border-dashed border-gray-200 hover:border-green-400 rounded-xl p-8 text-center transition-colors group"
+              >
+                <p className="text-3xl mb-2">{uploading ? "⏳" : "⬆️"}</p>
+                <p className="text-sm text-gray-500 group-hover:text-green-700">{uploading ? "Uploading…" : "Click to upload the Gemini-generated image"}</p>
+                <p className="text-xs text-gray-300 mt-1">JPG, PNG or WebP</p>
+              </button>
+              {analyzeError && <p className="text-sm text-red-600 bg-red-50 rounded-xl px-4 py-3">{analyzeError}</p>}
+            </div>
           )}
         </div>
       )}
@@ -500,15 +435,6 @@ export default function NewAdPage() {
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
               <div className="relative w-full aspect-[3/1] bg-white">
                 <Image src={imageUrl} alt="Ad preview" fill className="object-contain" unoptimized />
-                {(title || priceText || ratingText || socialProofText) && (
-                  <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/30 to-transparent flex flex-col justify-center px-5 gap-0.5 pointer-events-none">
-                    {title && <p className="text-white font-bold text-base sm:text-xl leading-tight drop-shadow">{title}</p>}
-                    {priceText && <p className="text-yellow-300 font-semibold text-sm leading-tight drop-shadow">{priceText}</p>}
-                    {(ratingText || socialProofText) && <p className="text-white/80 text-xs leading-tight drop-shadow">{[ratingText, socialProofText].filter(Boolean).join(" · ")}</p>}
-                    {subtitle && <p className="text-white/85 text-xs leading-tight drop-shadow">{subtitle}</p>}
-                    {ctaText && <span className="mt-2 self-start bg-green-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg">{ctaText}</span>}
-                  </div>
-                )}
               </div>
             </div>
           )}
@@ -516,23 +442,25 @@ export default function NewAdPage() {
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
             <h2 className="font-semibold text-gray-900">Ad details</h2>
 
-            {adType === "upload" && (
-              <div className="space-y-3 text-sm pb-4 border-b border-gray-50">
-                <Field label="Ad name (internal)" value={name} onChange={setName} />
-                <Field label="Headline (optional)" value={title} onChange={setTitle} />
-                <Field label="Subtitle (optional)" value={subtitle} onChange={setSubtitle} />
-                <Field label="CTA button text" value={ctaText} onChange={setCtaText} />
-                <Field label="Alt text" value={altText} onChange={setAltText} />
-              </div>
-            )}
-
             <div className="space-y-3 text-sm">
+              <Field label="Ad name (internal) *" value={name} onChange={setName} />
+
+              {adType === "upload" && (
+                <>
+                  <Field label="Headline (optional)" value={title} onChange={setTitle} />
+                  <Field label="Subtitle (optional)" value={subtitle} onChange={setSubtitle} />
+                  <Field label="CTA button text" value={ctaText} onChange={setCtaText} />
+                </>
+              )}
+
+              <Field label="Alt text (accessibility)" value={altText} onChange={setAltText} />
+
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Click URL (destination) *</label>
                 <input type="url" value={clickUrl} onChange={(e) => setClickUrl(e.target.value)}
                   placeholder="https://amazon.com.au/dp/..."
                   className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400" />
-                <p className="text-xs text-gray-400 mt-1">UTM parameters will be added automatically for GA4 tracking.</p>
+                <p className="text-xs text-gray-400 mt-1">UTM parameters will be added automatically.</p>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
