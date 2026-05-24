@@ -27,8 +27,10 @@ const SLOTS = [
   { value: "ad-hero", label: "Home — Hero" },
   { value: "ad-mid", label: "Home — Mid-page" },
   { value: "ad-prefooter", label: "Home — Pre-footer" },
-  { value: "recipe-top", label: "Recipes — Top" },
-  { value: "recipe-bottom", label: "Recipes — Bottom" },
+  { value: "recipe-top", label: "Recipe list — Top" },
+  { value: "recipe-bottom", label: "Recipe list — Bottom" },
+  { value: "recipe-page-top", label: "Recipe page — Above ingredients" },
+  { value: "recipe-page-bottom", label: "Recipe page — After method" },
 ];
 
 export default function NewAdPage() {

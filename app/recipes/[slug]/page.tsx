@@ -3,6 +3,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import PrintButton from './PrintButton';
+import AdSlot from '@/components/AdSlot';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -76,6 +77,10 @@ export default async function RecipePage({ params }: PageProps) {
         </div>
       </div>
 
+      <div className="print:hidden mb-8">
+        <AdSlot id="recipe-page-top" />
+      </div>
+
       {/* Ingredients */}
       <section className="mb-8">
         <h2 className="text-lg font-bold text-gray-900 mb-4">Ingredients</h2>
@@ -138,6 +143,10 @@ export default async function RecipePage({ params }: PageProps) {
           ))}
         </div>
       )}
+
+      <div className="print:hidden mb-8">
+        <AdSlot id="recipe-page-bottom" />
+      </div>
 
       {/* Print button */}
       <PrintButton recipe={recipe} />
