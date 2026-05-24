@@ -2,18 +2,29 @@ import { getActiveAds, pickAdsForSlots } from "@/lib/ads";
 import type { Ad } from "@/lib/ads";
 import AdDisplay from "./AdDisplay";
 
-const SLOTS = ["ad-hero", "ad-mid", "ad-prefooter", "recipe-top", "recipe-bottom"];
+// Each group draws from the full "any" pool independently so slots on one
+// page don't exhaust the supply for another page.
+const SLOT_GROUPS: Record<string, string[]> = {
+  home:    ["ad-hero", "ad-mid", "ad-prefooter"],
+  recipes: ["recipe-top", "recipe-bottom"],
+};
 
-let cachedPicks: Record<string, Ad | null> | null = null;
-let cacheAt = 0;
-
-async function getPicks() {
-  if (!cachedPicks || Date.now() - cacheAt > 60_000) {
-    const ads = await getActiveAds().catch(() => []);
-    cachedPicks = pickAdsForSlots(ads, SLOTS);
-    cacheAt = Date.now();
+function groupFor(slotId: string): string {
+  for (const [group, slots] of Object.entries(SLOT_GROUPS)) {
+    if (slots.includes(slotId)) return group;
   }
-  return cachedPicks;
+  return "home";
+}
+
+const picksCache: Record<string, { picks: Record<string, Ad | null>; at: number }> = {};
+
+async function getPicksForGroup(group: string): Promise<Record<string, Ad | null>> {
+  const cached = picksCache[group];
+  if (cached && Date.now() - cached.at < 60_000) return cached.picks;
+  const ads = await getActiveAds().catch(() => []);
+  const picks = pickAdsForSlots(ads, SLOT_GROUPS[group] ?? []);
+  picksCache[group] = { picks, at: Date.now() };
+  return picks;
 }
 
 interface AdSlotProps {
@@ -22,7 +33,7 @@ interface AdSlotProps {
 }
 
 export default async function AdSlot({ id, className }: AdSlotProps) {
-  const picks = await getPicks();
+  const picks = await getPicksForGroup(groupFor(id));
   const ad = picks[id] ?? null;
 
   if (!ad) {
