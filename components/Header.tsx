@@ -20,6 +20,9 @@ export default function Header() {
           <Link href="/recipes" className="hover:text-green-700 transition-colors">
             Recipes
           </Link>
+          <Link href="/the-docket" className="hover:text-green-700 transition-colors">
+            The Docket
+          </Link>
           <Link href="/hidden-grocery-tax" className="hover:text-green-700 transition-colors">
             The Hidden Tax
           </Link>

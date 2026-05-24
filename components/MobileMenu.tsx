@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 const links = [
   { href: "/", label: "GST-Free Food Search" },
   { href: "/recipes", label: "Recipes" },
+  { href: "/the-docket", label: "The Docket" },
   { href: "/hidden-grocery-tax", label: "The Hidden Tax" },
   { href: "/support", label: "Support" },
   { href: "/contact", label: "Contact" },

@@ -6,9 +6,11 @@ import AdDisplay from "./AdDisplay";
 // Each group draws from the full "any" pool independently so slots on one
 // page don't exhaust the supply for another page.
 const SLOT_GROUPS: Record<string, string[]> = {
-  home:          ["ad-hero", "ad-mid", "ad-prefooter"],
-  recipes:       ["recipe-top", "recipe-bottom"],
-  "recipe-page": ["recipe-page-top", "recipe-page-bottom"],
+  home:            ["ad-hero", "ad-mid", "ad-prefooter"],
+  recipes:         ["recipe-top", "recipe-bottom"],
+  "recipe-page":   ["recipe-page-top", "recipe-page-bottom"],
+  docket:          ["docket-top", "docket-bottom"],
+  "docket-article":["docket-article-mid", "docket-article-bottom"],
 };
 
 function groupFor(slotId: string): string {
