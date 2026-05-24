@@ -1,6 +1,7 @@
 import { getRecipes } from '@/lib/recipes';
 import Link from 'next/link';
 import Image from 'next/image';
+import AdSlot from '@/components/AdSlot';
 
 const TABS = [
   { value: 'all',       label: 'All Recipes' },
@@ -50,6 +51,8 @@ export default async function RecipesPage({ searchParams }: PageProps) {
           </Link>
         ))}
       </div>
+
+      <AdSlot id="recipe-top" className="mb-8" />
 
       {/* Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -103,6 +106,8 @@ export default async function RecipesPage({ searchParams }: PageProps) {
           </Link>
         ))}
       </div>
+
+      <AdSlot id="recipe-bottom" className="mt-8" />
     </div>
   );
 }

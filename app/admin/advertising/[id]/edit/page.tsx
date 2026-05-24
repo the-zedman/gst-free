@@ -7,9 +7,11 @@ import type { Ad } from "@/lib/ads";
 
 const SLOTS = [
   { value: "any", label: "Any slot (cycling)" },
-  { value: "ad-hero", label: "Hero (top of page)" },
-  { value: "ad-mid", label: "Mid-page" },
-  { value: "ad-prefooter", label: "Pre-footer" },
+  { value: "ad-hero", label: "Home — Hero" },
+  { value: "ad-mid", label: "Home — Mid-page" },
+  { value: "ad-prefooter", label: "Home — Pre-footer" },
+  { value: "recipe-top", label: "Recipes — Top" },
+  { value: "recipe-bottom", label: "Recipes — Bottom" },
 ];
 
 function toDateTimeLocal(iso: string | null): string {

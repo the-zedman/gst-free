@@ -2,7 +2,7 @@ import { getActiveAds, pickAdsForSlots } from "@/lib/ads";
 import type { Ad } from "@/lib/ads";
 import AdDisplay from "./AdDisplay";
 
-const SLOTS = ["ad-hero", "ad-mid", "ad-prefooter"];
+const SLOTS = ["ad-hero", "ad-mid", "ad-prefooter", "recipe-top", "recipe-bottom"];
 
 let cachedPicks: Record<string, Ad | null> | null = null;
 let cacheAt = 0;
