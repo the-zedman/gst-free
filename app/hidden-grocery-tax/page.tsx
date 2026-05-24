@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
+import Footer from "@/components/Footer";
 
 export const metadata: Metadata = {
   title: "Australia's Hidden Grocery Tax | GST Free",
@@ -380,6 +381,7 @@ export default function HiddenGroceryTaxPage() {
         </section>
 
       </div>
+      <Footer />
     </main>
   );
 }

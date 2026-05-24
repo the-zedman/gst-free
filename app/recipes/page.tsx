@@ -2,6 +2,7 @@ import { getRecipes } from '@/lib/recipes';
 import Link from 'next/link';
 import Image from 'next/image';
 import AdSlot from '@/components/AdSlot';
+import Footer from '@/components/Footer';
 
 const TABS = [
   { value: 'all',       label: 'All Recipes' },
@@ -108,6 +109,7 @@ export default async function RecipesPage({ searchParams }: PageProps) {
       </div>
 
       <AdSlot id="recipe-bottom" className="mt-8" />
+      <Footer />
     </div>
   );
 }

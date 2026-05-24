@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import PrintButton from './PrintButton';
 import AdSlot from '@/components/AdSlot';
+import Footer from '@/components/Footer';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -150,6 +151,7 @@ export default async function RecipePage({ params }: PageProps) {
 
       {/* Print button */}
       <PrintButton recipe={recipe} />
+      <Footer />
     </div>
   );
 }

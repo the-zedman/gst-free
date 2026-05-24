@@ -2,6 +2,7 @@ import { sql } from "@/lib/db";
 import { CATEGORIES, CATEGORY_COLORS } from "@/lib/constants";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import Footer from "@/components/Footer";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -98,6 +99,7 @@ export default async function ItemPage({ params }: PageProps) {
           </div>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }
