@@ -5,6 +5,7 @@ export default function Footer() {
     <footer className="border-t border-gray-100 py-8 px-4 mt-auto">
       <div className="max-w-4xl mx-auto flex flex-col items-center gap-4">
         <nav className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-gray-400">
+          <Link href="/hidden-grocery-tax" className="hover:text-green-700 transition-colors">The Hidden Grocery Tax</Link>
           <Link href="/privacy" className="hover:text-green-700 transition-colors">Privacy</Link>
           <Link href="/terms" className="hover:text-green-700 transition-colors">Terms</Link>
           <Link href="/support" className="hover:text-green-700 transition-colors">Support</Link>

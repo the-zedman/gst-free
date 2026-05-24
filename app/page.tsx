@@ -197,12 +197,12 @@ export default async function HomePage({ searchParams }: HomePageProps) {
                 {/* Savings mockup */}
                 <div className="mt-auto space-y-2">
                   <div className="bg-green-600 text-white rounded-xl px-4 py-4 text-center">
-                    <p className="text-3xl font-extrabold">$10–$20</p>
-                    <p className="text-green-100 text-xs mt-1">saved on a typical $200 weekly shop</p>
+                    <p className="text-3xl font-extrabold">$20–$35</p>
+                    <p className="text-green-100 text-xs mt-1">saved on a typical $260 weekly shop</p>
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-center">
                     <div className="bg-gray-50 rounded-xl py-3">
-                      <p className="text-lg font-bold text-gray-900">$520+</p>
+                      <p className="text-lg font-bold text-gray-900">$1,500+</p>
                       <p className="text-[11px] text-gray-400">per year, per family</p>
                     </div>
                     <div className="bg-gray-50 rounded-xl py-3">
