@@ -30,7 +30,7 @@ export default function PrivacyPage() {
             <ul className="list-disc list-inside mt-2 flex flex-col gap-1 text-sm">
               <li>The page you visited (URL path)</li>
               <li>Your device type (mobile, desktop, or tablet)</li>
-              <li>Your country (derived from your IP address via Vercel)</li>
+              <li>Your country (derived from your IP address)</li>
               <li>A one-way hashed version of your IP address — we cannot reverse this to identify you</li>
               <li>The page you came from (referrer), if any, excluding internal navigation</li>
             </ul>
@@ -46,15 +46,14 @@ export default function PrivacyPage() {
               If you use the Contact form, we collect your name, email address, and message. This information is used solely to respond to your enquiry and is not stored beyond what is needed for that purpose.
             </p>
             <p className="mt-2">
-              If you create an account (for admin access only — registration is not open to the public), your account information is managed by{" "}
-              <a href="https://clerk.com/privacy" target="_blank" rel="noopener noreferrer" className="text-green-700 hover:underline">Clerk</a>, our authentication provider.
+              If you create an account (for admin access only — registration is not open to the public), your account information is managed securely by our authentication provider and is not shared with third parties.
             </p>
           </section>
 
           <section>
             <h2 className="text-lg font-semibold text-gray-900 mb-3">Cookies</h2>
             <p>
-              We use cookies for analytics (Google Analytics) and authentication (Clerk, if applicable). By using this site you consent to the use of these cookies. You can disable cookies in your browser settings, which may affect some functionality.
+              We use cookies for analytics (Google Analytics) and authentication (where applicable). By using this site you consent to the use of these cookies. You can disable cookies in your browser settings, which may affect some functionality.
             </p>
           </section>
 
@@ -68,8 +67,7 @@ export default function PrivacyPage() {
           <section>
             <h2 className="text-lg font-semibold text-gray-900 mb-3">Data storage</h2>
             <p>
-              Our database is hosted on Neon (PostgreSQL) in the United States. Analytics data is retained for a rolling 90-day period. We use Vercel for hosting and deployment; see{" "}
-              <a href="https://vercel.com/legal/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-green-700 hover:underline">Vercel&apos;s Privacy Policy</a> for details on their data practices.
+              Your data is stored securely on servers hosted in the United States. Analytics data is retained for a rolling 90-day period.
             </p>
           </section>
 
@@ -92,8 +90,7 @@ export default function PrivacyPage() {
             <h2 className="text-lg font-semibold text-gray-900 mb-3">Contact</h2>
             <p>
               For privacy-related enquiries, please use our{" "}
-              <a href="/contact" className="text-green-700 hover:underline">contact form</a> or email{" "}
-              <a href="mailto:info@gstfree.com.au" className="text-green-700 hover:underline">info@gstfree.com.au</a>.
+              <a href="/contact" className="text-green-700 hover:underline">contact form</a>.
             </p>
           </section>
         </div>
