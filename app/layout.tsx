@@ -63,6 +63,7 @@ export default function RootLayout({
           <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=2" />
           <meta name="apple-mobile-web-app-title" content="GST Free" />
           <link rel="manifest" href="/site.webmanifest?v=2" />
+          <script src="https://analytics.ahrefs.com/analytics.js" data-key="Wk1qMjwieDmyGrhGu67FjQ" async></script>
         </head>
         <body className="min-h-full flex flex-col">
           <Suspense>
@@ -71,11 +72,6 @@ export default function RootLayout({
           <Header />
           {children}
         </body>
-        <Script
-          src="https://analytics.ahrefs.com/analytics.js"
-          data-key="Wk1qMjwieDmyGrhGu67FjQ"
-          strategy="afterInteractive"
-        />
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-48SJ7FG1B8"
           strategy="afterInteractive"
