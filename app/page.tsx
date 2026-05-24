@@ -24,23 +24,6 @@ interface HomePageProps {
   }>;
 }
 
-const HOW_IT_WORKS = [
-  {
-    icon: "🔍",
-    title: "Search any food",
-    desc: "Type a food name or scan a product barcode. Instantly see if it's GST-free or taxed.",
-  },
-  {
-    icon: "🛒",
-    title: "Shop smarter",
-    desc: "Use the list to guide your weekly shop and focus your spend on GST-free staples.",
-  },
-  {
-    icon: "💰",
-    title: "Keep more money",
-    desc: "GST adds 10% to taxed foods. A family switching to GST-free staples can save hundreds per year.",
-  },
-];
 
 const COMING_SOON = [
   {
@@ -136,20 +119,113 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         </div>
 
         {/* How it works */}
-        <section className="max-w-4xl mx-auto w-full px-4 py-10">
-          <h2 className="text-2xl font-bold text-gray-900 text-center mb-10">
-            How it works
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
-            {HOW_IT_WORKS.map(({ icon, title, desc }) => (
-              <div key={title} className="flex flex-col items-center text-center gap-3">
-                <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center text-3xl">
-                  {icon}
+        <section className="w-full bg-gradient-to-b from-white via-green-50/40 to-white py-16 px-4">
+          <div className="max-w-5xl mx-auto">
+
+            {/* Header */}
+            <div className="text-center mb-12">
+              <p className="text-green-600 font-semibold text-sm uppercase tracking-widest mb-3">Simple · Free · Instant</p>
+              <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4 leading-tight">
+                Stop overpaying on groceries.<br className="hidden sm:block" /> Here&apos;s how.
+              </h2>
+              <p className="text-gray-500 max-w-lg mx-auto text-base leading-relaxed">
+                Most Australians don&apos;t realise which everyday foods are GST-free — and quietly pay 10% more than they need to. This site fixes that.
+              </p>
+            </div>
+
+            {/* Steps */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+              {/* Step 1 */}
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-green-600 text-white flex items-center justify-center font-bold text-base shrink-0">1</div>
+                  <h3 className="text-lg font-bold text-gray-900">Search or scan</h3>
                 </div>
-                <h3 className="font-semibold text-gray-900">{title}</h3>
-                <p className="text-sm text-gray-500 leading-relaxed">{desc}</p>
+                <p className="text-sm text-gray-500 leading-relaxed">
+                  Type any food name — or scan a barcode in-store. Works on any phone, no app needed.
+                </p>
+                {/* Mockup */}
+                <div className="bg-gray-50 rounded-xl p-3 mt-auto space-y-2">
+                  <div className="bg-white rounded-lg border border-gray-200 px-3 py-2.5 flex items-center gap-2 shadow-sm text-sm">
+                    <span className="text-gray-400">🔍</span>
+                    <span className="text-gray-700 font-medium">wholemilk</span>
+                    <span className="ml-auto text-[10px] bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full">or scan barcode</span>
+                  </div>
+                  <p className="text-[11px] text-gray-400 text-center">1,400+ ATO-confirmed items in our database</p>
+                </div>
               </div>
-            ))}
+
+              {/* Step 2 */}
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-green-600 text-white flex items-center justify-center font-bold text-base shrink-0">2</div>
+                  <h3 className="text-lg font-bold text-gray-900">Get an instant verdict</h3>
+                </div>
+                <p className="text-sm text-gray-500 leading-relaxed">
+                  A clear result — green means GST-free, red means taxed. No tax law knowledge required.
+                </p>
+                {/* Mockup */}
+                <div className="space-y-2 mt-auto">
+                  <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-xl px-3 py-2.5">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-800">Whole milk</p>
+                      <p className="text-[11px] text-gray-400">Fresh dairy</p>
+                    </div>
+                    <span className="text-xs font-bold text-green-700 bg-green-100 px-2 py-1 rounded-full">GST-FREE ✓</span>
+                  </div>
+                  <div className="flex items-center justify-between bg-red-50 border border-red-200 rounded-xl px-3 py-2.5">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-800">Flavoured milk</p>
+                      <p className="text-[11px] text-gray-400">Dairy drinks</p>
+                    </div>
+                    <span className="text-xs font-bold text-red-600 bg-red-100 px-2 py-1 rounded-full">TAXED ✗</span>
+                  </div>
+                  <p className="text-[11px] text-gray-400 text-center">Subtle differences, big cost over time</p>
+                </div>
+              </div>
+
+              {/* Step 3 */}
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-green-600 text-white flex items-center justify-center font-bold text-base shrink-0">3</div>
+                  <h3 className="text-lg font-bold text-gray-900">Save every shop</h3>
+                </div>
+                <p className="text-sm text-gray-500 leading-relaxed">
+                  GST is 10% on every taxable item. Shift your basket toward GST-free staples and the savings stack up fast.
+                </p>
+                {/* Savings mockup */}
+                <div className="mt-auto space-y-2">
+                  <div className="bg-green-600 text-white rounded-xl px-4 py-4 text-center">
+                    <p className="text-3xl font-extrabold">$10–$20</p>
+                    <p className="text-green-100 text-xs mt-1">saved on a typical $200 weekly shop</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-center">
+                    <div className="bg-gray-50 rounded-xl py-3">
+                      <p className="text-lg font-bold text-gray-900">$520+</p>
+                      <p className="text-[11px] text-gray-400">per year, per family</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-xl py-3">
+                      <p className="text-lg font-bold text-gray-900">10%</p>
+                      <p className="text-[11px] text-gray-400">GST you avoid paying</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Did you know callout */}
+            <div className="mt-8 bg-amber-50 border border-amber-200 rounded-2xl p-5 flex gap-4 items-start">
+              <span className="text-2xl shrink-0">💡</span>
+              <div>
+                <p className="font-semibold text-amber-900 mb-1">Did you know?</p>
+                <p className="text-sm text-amber-800 leading-relaxed">
+                  Basic foods like fresh meat, fruit, vegetables, bread, milk, eggs and most seafood are <strong>completely GST-free</strong> under Australian law — but many shoppers unknowingly buy the taxed version of the same food (e.g. flavoured yoghurt vs plain, or mixed nuts vs unsalted). Small swaps, repeated weekly, add up to hundreds of dollars a year.
+                </p>
+              </div>
+            </div>
+
           </div>
         </section>
 
