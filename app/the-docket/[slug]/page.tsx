@@ -17,13 +17,29 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { slug } = await params;
   const article = await getArticle(slug);
   if (!article) return {};
+  const url = `https://gstfree.com.au/the-docket/${slug}`;
   return {
     title: `${article.title} | The Docket — GSTFree`,
     description: article.excerpt,
+    alternates: { canonical: url },
     openGraph: {
       title: article.title,
       description: article.excerpt,
-      images: article.hero_image ? [article.hero_image] : [],
+      url,
+      type: 'article',
+      locale: 'en_AU',
+      siteName: 'GSTFree',
+      publishedTime: article.published_at,
+      modifiedTime: article.updated_at,
+      images: article.hero_image
+        ? [{ url: `https://gstfree.com.au${article.hero_image}`, width: 1344, height: 768 }]
+        : [],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: article.title,
+      description: article.excerpt,
+      images: article.hero_image ? [`https://gstfree.com.au${article.hero_image}`] : [],
     },
   };
 }
