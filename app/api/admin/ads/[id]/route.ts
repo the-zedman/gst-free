@@ -1,12 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { updateAd, deleteAd } from "@/lib/ads";
+import { updateAd, deleteAd, getAdById } from "@/lib/ads";
 import { del } from "@vercel/blob";
-import { getAdById } from "@/lib/ads";
 
 async function requireAdmin() {
   const { sessionClaims } = await auth();
   return sessionClaims?.metadata?.role === "admin";
+}
+
+export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  if (!(await requireAdmin())) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const { id } = await params;
+  const adId = Number(id);
+  if (isNaN(adId)) return NextResponse.json({ error: "Invalid id" }, { status: 400 });
+
+  const ad = await getAdById(adId);
+  if (!ad) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  return NextResponse.json({ ad });
 }
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {

@@ -51,6 +51,10 @@ export default async function AdDetailPage({ params }: { params: Promise<{ id: s
           {ad.type === "ai" ? "AI" : "Upload"}
         </span>
         <div className="ml-auto flex items-center gap-3">
+          <Link href={`/admin/advertising/${ad.id}/edit`}
+            className="text-sm text-gray-500 hover:text-gray-900 border border-gray-200 hover:border-gray-400 px-3 py-1.5 rounded-lg transition-colors">
+            Edit
+          </Link>
           <AdToggle id={ad.id} active={ad.active} />
           <AdDeleteButton id={ad.id} name={ad.name} />
         </div>

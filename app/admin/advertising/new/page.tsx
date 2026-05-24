@@ -66,7 +66,9 @@ export default function NewAdPage() {
   const [slotTarget, setSlotTarget] = useState("any");
   const [weight, setWeight] = useState(1);
   const [sponsoredLabel, setSponsoredLabel] = useState("Sponsored");
+  const [useStartDate, setUseStartDate] = useState(false);
   const [startsAt, setStartsAt] = useState("");
+  const [useEndDate, setUseEndDate] = useState(false);
   const [endsAt, setEndsAt] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -484,16 +486,40 @@ export default function NewAdPage() {
                   className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400" />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Start date (optional)</label>
-                  <input type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)}
-                    className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400" />
+                  <label className="flex items-center gap-2 text-xs font-medium text-gray-600 mb-1 cursor-pointer">
+                    <input type="checkbox" checked={useStartDate} onChange={(e) => {
+                      setUseStartDate(e.target.checked);
+                      if (!e.target.checked) { setStartsAt(""); setUseEndDate(false); setEndsAt(""); }
+                      else if (!startsAt) {
+                        const d = new Date();
+                        setStartsAt(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}T${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`);
+                      }
+                    }} className="rounded" />
+                    Set start date
+                  </label>
+                  {useStartDate && (
+                    <input type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)}
+                      className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400" />
+                  )}
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">End date (optional)</label>
-                  <input type="datetime-local" value={endsAt} onChange={(e) => setEndsAt(e.target.value)}
-                    className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400" />
+                  <label className={`flex items-center gap-2 text-xs font-medium mb-1 cursor-pointer ${useStartDate ? "text-gray-600" : "text-gray-300"}`}>
+                    <input type="checkbox" checked={useEndDate} disabled={!useStartDate} onChange={(e) => {
+                      setUseEndDate(e.target.checked);
+                      if (!e.target.checked) setEndsAt("");
+                      else if (!endsAt) {
+                        const d = new Date(); d.setMonth(d.getMonth() + 1);
+                        setEndsAt(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}T${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`);
+                      }
+                    }} className="rounded disabled:opacity-30" />
+                    Set end date <span className="font-normal">(runs forever if not set)</span>
+                  </label>
+                  {useEndDate && (
+                    <input type="datetime-local" value={endsAt} onChange={(e) => setEndsAt(e.target.value)}
+                      className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400" />
+                  )}
                 </div>
               </div>
             </div>
