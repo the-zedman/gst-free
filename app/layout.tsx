@@ -35,11 +35,13 @@ export const metadata: Metadata = {
     url: "https://gstfree.com.au",
     locale: "en_AU",
     type: "website",
+    images: [{ url: "/og-image.png", width: 1200, height: 630 }],
   },
   twitter: {
     card: "summary_large_image",
     title,
     description,
+    images: ["/og-image.png"],
   },
   alternates: {
     canonical: "https://gstfree.com.au",
