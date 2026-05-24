@@ -422,8 +422,32 @@ export default function NewAdPage() {
 
             {productImages.length > 0 && (
               <p className="text-xs text-gray-400">
-                ✓ {productImages.filter(i => i.url).length}/{productImages.length} product photos uploaded — will be used to describe the product to Flux.
+                ✓ {productImages.filter(i => i.url).length}/{productImages.length} product photos uploaded
               </p>
+            )}
+
+            {/* Use a product photo directly as the banner */}
+            {productImages.some(i => i.url) && (
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-gray-500">Use a product photo as your banner:</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {productImages.filter(i => i.url).map((img, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setGeneratedImageUrl(img.url!)}
+                      className={`relative rounded-xl overflow-hidden border-2 transition-all ${generatedImageUrl === img.url ? "border-green-400 ring-2 ring-green-200" : "border-gray-200 hover:border-green-300"}`}
+                    >
+                      <div className="aspect-[3/1] bg-white">
+                        <img src={img.preview} alt={`Product ${i + 1}`} className="w-full h-full object-contain" />
+                      </div>
+                      <span className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors flex items-end justify-center pb-1">
+                        <span className="text-[10px] text-white bg-black/40 rounded px-1.5 py-0.5 opacity-0 group-hover:opacity-100">Use this</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-300">Or generate a new image with AI below.</p>
+              </div>
             )}
 
             {!generatedImageUrl && !generatingImage && (
@@ -433,8 +457,8 @@ export default function NewAdPage() {
                 className="w-full border-2 border-dashed border-gray-200 hover:border-purple-400 rounded-xl p-8 text-center transition-colors disabled:opacity-40 group"
               >
                 <p className="text-3xl mb-2">🎨</p>
-                <p className="text-sm text-gray-500 group-hover:text-purple-700">Generate ad image with AI</p>
-                <p className="text-xs text-gray-300 mt-1">Flux 2 Pro via AI Gateway · ~30–45 seconds</p>
+                <p className="text-sm text-gray-500 group-hover:text-purple-700">Generate AI banner image</p>
+                <p className="text-xs text-gray-300 mt-1">Flux 2 Pro · ~30–45s · stylised interpretation of product</p>
               </button>
             )}
 
@@ -445,14 +469,14 @@ export default function NewAdPage() {
             )}
 
             {generatedImageUrl && (
-              <div className="relative w-full aspect-[3/1] rounded-xl overflow-hidden border border-gray-100">
-                <Image src={generatedImageUrl} alt="Generated ad" fill className="object-cover" unoptimized />
+              <div className="relative w-full aspect-[3/1] rounded-xl overflow-hidden border border-gray-100 bg-white">
+                <Image src={generatedImageUrl} alt="Generated ad" fill className="object-contain" unoptimized />
                 {(title || priceText || ratingText || socialProofText) && (
                   <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/30 to-transparent flex flex-col justify-center px-5 gap-0.5 pointer-events-none">
                     {title && <p className="text-white font-bold text-base sm:text-xl leading-tight drop-shadow">{title}</p>}
                     {priceText && <p className="text-yellow-300 font-semibold text-sm leading-tight drop-shadow">{priceText}</p>}
                     {(ratingText || socialProofText) && <p className="text-white/80 text-xs leading-tight drop-shadow">{[ratingText, socialProofText].filter(Boolean).join(" · ")}</p>}
-                    {!priceText && !ratingText && !socialProofText && subtitle && <p className="text-white/90 text-sm leading-tight drop-shadow">{subtitle}</p>}
+                    {subtitle && <p className="text-white/85 text-xs leading-tight drop-shadow">{subtitle}</p>}
                     {ctaText && <span className="mt-2 self-start bg-green-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg">{ctaText}</span>}
                   </div>
                 )}
@@ -474,14 +498,14 @@ export default function NewAdPage() {
         <div className="space-y-4">
           {imageUrl && (
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-              <div className="relative w-full aspect-[3/1]">
-                <Image src={imageUrl} alt="Ad preview" fill className="object-cover" unoptimized />
+              <div className="relative w-full aspect-[3/1] bg-white">
+                <Image src={imageUrl} alt="Ad preview" fill className="object-contain" unoptimized />
                 {(title || priceText || ratingText || socialProofText) && (
                   <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/30 to-transparent flex flex-col justify-center px-5 gap-0.5 pointer-events-none">
                     {title && <p className="text-white font-bold text-base sm:text-xl leading-tight drop-shadow">{title}</p>}
                     {priceText && <p className="text-yellow-300 font-semibold text-sm leading-tight drop-shadow">{priceText}</p>}
                     {(ratingText || socialProofText) && <p className="text-white/80 text-xs leading-tight drop-shadow">{[ratingText, socialProofText].filter(Boolean).join(" · ")}</p>}
-                    {!priceText && !ratingText && !socialProofText && subtitle && <p className="text-white/90 text-sm leading-tight drop-shadow">{subtitle}</p>}
+                    {subtitle && <p className="text-white/85 text-xs leading-tight drop-shadow">{subtitle}</p>}
                     {ctaText && <span className="mt-2 self-start bg-green-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg">{ctaText}</span>}
                   </div>
                 )}

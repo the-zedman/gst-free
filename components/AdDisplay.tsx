@@ -57,12 +57,12 @@ export default function AdDisplay({ ad, slot }: Props) {
         className="block"
         aria-label={ad.alt_text ?? ad.title ?? "Advertisement"}
       >
-        <div className="relative w-full aspect-[3/1] bg-gray-100 min-h-[90px]">
+        <div className="relative w-full aspect-[3/1] bg-white min-h-[90px]">
           <Image
             src={ad.image_url}
             alt={ad.alt_text ?? ad.title ?? "Advertisement"}
             fill
-            className="object-cover"
+            className="object-contain"
             sizes="(max-width: 768px) 100vw, 896px"
             unoptimized={ad.image_url.includes("blob.vercel-storage.com")}
           />
@@ -85,8 +85,8 @@ export default function AdDisplay({ ad, slot }: Props) {
                   {[ad.rating_text, ad.social_proof].filter(Boolean).join(" · ")}
                 </p>
               )}
-              {ad.subtitle && !ad.price_text && !ad.rating_text && !ad.social_proof && (
-                <p className="text-white/90 text-sm sm:text-base leading-tight drop-shadow">
+              {ad.subtitle && (
+                <p className="text-white/85 text-xs sm:text-sm leading-tight drop-shadow">
                   {ad.subtitle}
                 </p>
               )}

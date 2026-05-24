@@ -160,11 +160,11 @@ ${copy ? `Ad headline: "${copy.title}"` : ""}
 ${copy?.subtitle ? `Ad subtitle: "${copy.subtitle}"` : ""}
 
 Critical composition requirements:
-1. The ENTIRE product must be completely visible — generous padding on ALL sides, absolutely NO cropping at any edge of the frame
-2. Product positioned in the right 55% of the image, fully contained within the frame
-3. Left 45% should be a clean, minimal, uncluttered area for text overlay (gradient or very plain background)
+1. The product must appear SMALL relative to the overall image — occupying no more than 35% of the total image area — so that it fits entirely within the frame with large amounts of white space surrounding it on all sides
+2. The product is positioned in the RIGHT THIRD of the image, vertically centred, fully visible, with clear empty space above, below, and to the right of it
+3. The LEFT TWO-THIRDS of the image is clean, minimal white or very light grey — suitable for text overlay
 4. Professional commercial photography: clean white or very light grey background, photorealistic, studio lighting, high resolution
-5. Consider the product's shape: if it is tall (blender, stand mixer, bottle), ensure generous top and bottom headroom; if wide (laptop, monitor), ensure extra side padding
+5. Think about the product's form factor: tall products (blenders, bottles, stand mixers) must have significant empty space above and below; wide products (laptops, monitors) must have space left and right — scale it down accordingly
 
 Write ONLY the Flux prompt text, nothing else. No explanation, no preamble, no quotes.`,
     }],
