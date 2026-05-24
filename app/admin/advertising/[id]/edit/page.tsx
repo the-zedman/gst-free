@@ -93,8 +93,8 @@ export default function EditAdPage() {
         name, click_url: clickUrl, alt_text: altText || null,
         title: title || null, subtitle: subtitle || null, cta_text: ctaText,
         slot_target: slotTarget, weight, sponsored_label: sponsoredLabel,
-        starts_at: useStartDate ? startsAt : null,
-        ends_at: useEndDate ? endsAt : null,
+        starts_at: useStartDate && startsAt ? new Date(startsAt).toISOString() : null,
+        ends_at: useEndDate && endsAt ? new Date(endsAt).toISOString() : null,
       }),
     });
     const data = await res.json() as { ok?: boolean; error?: string };

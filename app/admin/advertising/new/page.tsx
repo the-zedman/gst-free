@@ -192,7 +192,8 @@ export default function NewAdPage() {
         cta_text: effectiveCta || ctaText || "Shop Now",
         alt_text: altText || null, slot_target: slotTarget, weight,
         active: true, sponsored_label: sponsoredLabel,
-        starts_at: startsAt || null, ends_at: endsAt || null,
+        starts_at: startsAt ? new Date(startsAt).toISOString() : null,
+        ends_at: endsAt ? new Date(endsAt).toISOString() : null,
       }),
     });
     const data = await res.json() as { ad?: { id: number }; error?: string };
