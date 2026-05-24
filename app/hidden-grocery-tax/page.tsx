@@ -127,9 +127,10 @@ export default function HiddenGroceryTaxPage() {
 
       {/* Hero */}
       <section className="relative bg-gray-900 text-white py-20 px-4 overflow-hidden">
-        <div className="absolute inset-0 opacity-30">
+        <div className="absolute inset-0 opacity-55">
           <Image src="/images/gst-family-shopping.jpg" alt="Australian family grocery shopping" fill className="object-cover" priority />
         </div>
+        <div className="absolute inset-0 bg-gradient-to-t from-gray-900/80 via-gray-900/40 to-gray-900/30" />
         <div className="relative max-w-4xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 bg-red-500/80 text-white text-sm font-semibold px-4 py-2 rounded-full mb-6">
             🇦🇺 Australian Cost-of-Living Crisis
