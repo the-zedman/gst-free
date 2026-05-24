@@ -17,20 +17,11 @@ function groupFor(slotId: string): string {
   return "home";
 }
 
-// Module-level cache for active ads (avoids repeated DB hits across requests)
-let cachedAds: Awaited<ReturnType<typeof getActiveAds>> | null = null;
-let cacheAt = 0;
-async function getAds() {
-  if (!cachedAds || Date.now() - cacheAt > 60_000) {
-    cachedAds = await getActiveAds().catch(() => []);
-    cacheAt = Date.now();
-  }
-  return cachedAds;
-}
+// cache() here ensures one DB fetch per request shared across all slot groups,
+// and one pickAdsForSlots call per group shared across all AdSlot components
+// on the same page — eliminates both stale module-level data and race conditions.
+const getAds = cache(async () => getActiveAds().catch(() => []));
 
-// React cache() ensures all AdSlot components on the same page share one
-// pick result per group — prevents concurrent renders each computing their
-// own independent random picks and overwriting each other.
 const getPicksForGroup = cache(async (group: string): Promise<Record<string, Ad | null>> => {
   const ads = await getAds();
   return pickAdsForSlots(ads, SLOT_GROUPS[group] ?? []);
