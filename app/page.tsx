@@ -345,8 +345,8 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   const inBarcodeMode = isBarcode(barcode);
   const barcodeProduct = inBarcodeMode ? await lookupBarcode(barcode) : null;
   const currentPage = Math.max(1, parseInt(page) || 1);
-  const { items, total } = inBarcodeMode
-    ? { items: [], total: 0 }
+  const { items, total, synonymsUsed } = inBarcodeMode
+    ? { items: [], total: 0, synonymsUsed: [] }
     : await searchItems(q, category, status, currentPage);
 
   const catLabel =
@@ -384,33 +384,40 @@ export default async function HomePage({ searchParams }: HomePageProps) {
           </div>
 
           <div className="flex items-center justify-between mb-4">
-            <p className="text-sm text-gray-500">
-              {total === 0 ? (
-                "No items found"
-              ) : (
-                <>
-                  <span className="font-semibold text-gray-800">
-                    {total.toLocaleString()}
-                  </span>{" "}
-                  {q ? (
-                    <>
-                      results for{" "}
-                      <span className="font-semibold text-green-700">
-                        &ldquo;{q}&rdquo;
+            <div>
+              <p className="text-sm text-gray-500">
+                {total === 0 ? (
+                  "No items found"
+                ) : (
+                  <>
+                    <span className="font-semibold text-gray-800">
+                      {total.toLocaleString()}
+                    </span>{" "}
+                    {q ? (
+                      <>
+                        results for{" "}
+                        <span className="font-semibold text-green-700">
+                          &ldquo;{q}&rdquo;
+                        </span>
+                      </>
+                    ) : (
+                      <>{catLabel}</>
+                    )}
+                    {total > PAGE_SIZE && (
+                      <span className="text-gray-400">
+                        {" "}
+                        · showing {start}–{end}
                       </span>
-                    </>
-                  ) : (
-                    <>{catLabel}</>
-                  )}
-                  {total > PAGE_SIZE && (
-                    <span className="text-gray-400">
-                      {" "}
-                      · showing {start}–{end}
-                    </span>
-                  )}
-                </>
+                    )}
+                  </>
+                )}
+              </p>
+              {synonymsUsed.length > 0 && total > 0 && (
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Also showing ATO entries for: {synonymsUsed.join(", ")}
+                </p>
               )}
-            </p>
+            </div>
           </div>
 
           {items.length === 0 && (

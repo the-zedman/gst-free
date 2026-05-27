@@ -1,6 +1,7 @@
 import "server-only";
 import { sql } from "@/lib/db";
 import { PAGE_SIZE } from "@/lib/constants";
+import { expandPatterns, synonymsFor } from "@/lib/synonyms";
 
 export type { CategoryValue, GstStatus, GstFilter } from "@/lib/constants";
 export { CATEGORIES, CATEGORY_COLORS, GST_STATUS_FILTERS, PAGE_SIZE, shortName } from "@/lib/constants";
@@ -17,6 +18,7 @@ export interface Item {
 export interface SearchResult {
   items: Item[];
   total: number;
+  synonymsUsed: string[];
 }
 
 function statusSql(gstFilter: string): string {
@@ -35,38 +37,64 @@ export async function searchItems(
   const hasQ = q.trim().length > 0;
   const hasCat = category !== "all";
   const hasStatus = gstFilter !== "all";
-  const pattern = `%${q.trim()}%`;
+
+  // Expand query to include synonym patterns.
+  // allPatterns[0] is always the direct pattern (%q%).
+  // prefix is used only for ordering (starts-with gets priority).
+  const allPatterns = hasQ ? expandPatterns(q) : [];
   const prefix = `${q.trim()}%`;
   const statusVal = statusSql(gstFilter);
+  const synonymsUsed = hasQ ? synonymsFor(q) : [];
 
   type Row = Item & { total_count: string };
-
-  // Build 8 variants: (q|noQ) × (cat|noCat) × (status|noStatus)
   let rows: Row[];
+
+  // ORDER BY: starts-with-query > contains-query > synonym-only match
+  // When no synonyms, ELSE 1 is never reached for synonym case but that's fine.
 
   if (hasQ && hasCat && hasStatus) {
     rows = await sql`
       SELECT id, ato_id, name, category, gst_status, slug, COUNT(*) OVER() AS total_count
-      FROM items WHERE name ILIKE ${pattern} AND category = ${category} AND gst_status = ${statusVal}
-      ORDER BY CASE WHEN name ILIKE ${prefix} THEN 0 ELSE 1 END, name ASC
+      FROM items
+      WHERE name ILIKE ANY(${allPatterns}) AND category = ${category} AND gst_status = ${statusVal}
+      ORDER BY
+        CASE WHEN name ILIKE ${prefix} THEN 0
+             WHEN name ILIKE ${allPatterns[0]} THEN 1
+             ELSE 2 END,
+        name ASC
       LIMIT ${PAGE_SIZE} OFFSET ${offset}` as Row[];
   } else if (hasQ && hasCat) {
     rows = await sql`
       SELECT id, ato_id, name, category, gst_status, slug, COUNT(*) OVER() AS total_count
-      FROM items WHERE name ILIKE ${pattern} AND category = ${category}
-      ORDER BY CASE WHEN name ILIKE ${prefix} THEN 0 ELSE 1 END, name ASC
+      FROM items
+      WHERE name ILIKE ANY(${allPatterns}) AND category = ${category}
+      ORDER BY
+        CASE WHEN name ILIKE ${prefix} THEN 0
+             WHEN name ILIKE ${allPatterns[0]} THEN 1
+             ELSE 2 END,
+        name ASC
       LIMIT ${PAGE_SIZE} OFFSET ${offset}` as Row[];
   } else if (hasQ && hasStatus) {
     rows = await sql`
       SELECT id, ato_id, name, category, gst_status, slug, COUNT(*) OVER() AS total_count
-      FROM items WHERE name ILIKE ${pattern} AND gst_status = ${statusVal}
-      ORDER BY CASE WHEN name ILIKE ${prefix} THEN 0 ELSE 1 END, name ASC
+      FROM items
+      WHERE name ILIKE ANY(${allPatterns}) AND gst_status = ${statusVal}
+      ORDER BY
+        CASE WHEN name ILIKE ${prefix} THEN 0
+             WHEN name ILIKE ${allPatterns[0]} THEN 1
+             ELSE 2 END,
+        name ASC
       LIMIT ${PAGE_SIZE} OFFSET ${offset}` as Row[];
   } else if (hasQ) {
     rows = await sql`
       SELECT id, ato_id, name, category, gst_status, slug, COUNT(*) OVER() AS total_count
-      FROM items WHERE name ILIKE ${pattern}
-      ORDER BY CASE WHEN name ILIKE ${prefix} THEN 0 ELSE 1 END, name ASC
+      FROM items
+      WHERE name ILIKE ANY(${allPatterns})
+      ORDER BY
+        CASE WHEN name ILIKE ${prefix} THEN 0
+             WHEN name ILIKE ${allPatterns[0]} THEN 1
+             ELSE 2 END,
+        name ASC
       LIMIT ${PAGE_SIZE} OFFSET ${offset}` as Row[];
   } else if (hasCat && hasStatus) {
     rows = await sql`
@@ -90,5 +118,5 @@ export async function searchItems(
   }
 
   const total = rows.length > 0 ? parseInt(rows[0].total_count) : 0;
-  return { items: rows, total };
+  return { items: rows, total, synonymsUsed };
 }
