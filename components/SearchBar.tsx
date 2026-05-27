@@ -16,16 +16,13 @@ export default function SearchBar({ defaultValue = "" }: SearchBarProps) {
   const [value, setValue] = useState(defaultValue);
   const [scanning, setScanning] = useState(false);
   const [scanError, setScanError] = useState("");
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const controlsRef = useRef<IScannerControls | null>(null);
 
   const isBarcode = BARCODE_RE.test(value.trim());
 
   useEffect(() => {
-    if (!timerRef.current) {
-      setValue(defaultValue);
-    }
+    setValue(defaultValue);
   }, [defaultValue]);
 
   const navigate = useCallback(
@@ -55,13 +52,7 @@ export default function SearchBar({ defaultValue = "" }: SearchBarProps) {
   );
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const q = e.target.value;
-    setValue(q);
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => {
-      timerRef.current = null;
-      navigate(q);
-    }, 350);
+    setValue(e.target.value);
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -72,7 +63,6 @@ export default function SearchBar({ defaultValue = "" }: SearchBarProps) {
 
   function handleClear() {
     setValue("");
-    if (timerRef.current) clearTimeout(timerRef.current);
     navigate("");
   }
 
@@ -183,7 +173,16 @@ export default function SearchBar({ defaultValue = "" }: SearchBarProps) {
             )}
           </div>
 
-          {/* Scan button — mobile only, outside input so placeholder has full width */}
+          {/* Search button — always visible */}
+          <button
+            type="submit"
+            aria-label="Search"
+            className="shrink-0 flex items-center justify-center h-14 px-5 rounded-2xl bg-green-600 hover:bg-green-700 text-white font-semibold text-sm transition-colors shadow-sm hidden sm:flex"
+          >
+            Search
+          </button>
+
+          {/* Scan button — mobile only */}
           <button
             type="button"
             onClick={openScanner}
@@ -200,7 +199,7 @@ export default function SearchBar({ defaultValue = "" }: SearchBarProps) {
         </div>
         {isBarcode && (
           <p className="text-xs text-center text-blue-500 mt-1.5 font-medium">
-            Barcode detected — press Enter or wait to look up
+            Barcode detected — press Enter to look up
           </p>
         )}
         {scanError && (
