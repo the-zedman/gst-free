@@ -23,7 +23,9 @@ export default function SearchBar({ defaultValue = "" }: SearchBarProps) {
   const isBarcode = BARCODE_RE.test(value.trim());
 
   useEffect(() => {
-    setValue(defaultValue);
+    if (!timerRef.current) {
+      setValue(defaultValue);
+    }
   }, [defaultValue]);
 
   const navigate = useCallback(
@@ -56,7 +58,10 @@ export default function SearchBar({ defaultValue = "" }: SearchBarProps) {
     const q = e.target.value;
     setValue(q);
     if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => navigate(q), 350);
+    timerRef.current = setTimeout(() => {
+      timerRef.current = null;
+      navigate(q);
+    }, 350);
   }
 
   function handleSubmit(e: React.FormEvent) {
