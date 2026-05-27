@@ -57,7 +57,6 @@ export default function SearchBar({ defaultValue = "" }: SearchBarProps) {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (timerRef.current) clearTimeout(timerRef.current);
     navigate(value);
   }
 
